@@ -73,12 +73,12 @@ npm install
 
 Create environment files:
 
-Copy .env.local.example to .env.local
-Create a separate .env file for Prisma
+Copy `.env.local.example` to `.env.local`
+Create a separate `.env` file for Prisma
 
-If you are on Windows PowerShell and cp does not work, create the files manually.
+If you are on Windows PowerShell and `cp` does not work, create the files manually.
 
-.env.local
+`.env.local`
 
 Used for public client-side Supabase variables:
 
@@ -87,7 +87,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-.env
+`.env`
 
 Used for Prisma database connection:
 
@@ -96,9 +96,9 @@ DATABASE_URL=
 ```
 
 Supabase setup notes
-NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY come from your Supabase project settings
-DATABASE_URL should use the Supabase Postgres connection string
-For local Prisma migration in this project, use the Session pooler connection string instead of direct connection if direct connection is unreachable
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` come from your Supabase project settings
+`DATABASE_URL` should use the Supabase Postgres connection string
+For local Prisma migration in this project, use the **Session pooler** connection string instead of direct connection if direct connection is unreachable
 
 Run database migration:
 
