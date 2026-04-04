@@ -1,8 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Watch Tracker
 
-## Getting Started
+A web app for tracking movies, TV shows, and anime.
 
-First, run the development server:
+Current stage: early MVP foundation.
+
+## Current Status
+
+This project currently includes:
+
+- Next.js App Router setup
+- TypeScript + Tailwind CSS
+- Supabase Auth (email/password)
+- Login / signup / logout
+- Protected `/my` page
+- SSR-friendly session handling
+- Basic page skeleton for future development
+
+Not implemented yet:
+
+- title search
+- database business models
+- watch entries
+- ratings / reviews
+- tags / custom lists
+- episode tracking
+
+---
+
+## Tech Stack
+
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Supabase Auth
+- Prisma
+- PostgreSQL (via Supabase, later business usage)
+
+---
+
+## Requirements
+
+Before running locally, install:
+
+- Node.js 22+ or 24 LTS
+- Git
+- VS Code
+- A Supabase account/project
+
+Optional but recommended:
+
+- GitHub account
+- Codex / AI coding assistant
+- Prisma extension for VS Code
+- ESLint extension for VS Code
+
+---
+
+## Local Setup
+
+Clone the repository:
+
+```bash
+git clone <your-repo-url>
+cd watch-tracker
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create environment files:
+
+Copy .env.local.example to .env.local
+Create a separate .env file for Prisma
+
+If you are on Windows PowerShell and cp does not work, create the files manually.
+
+.env.local
+
+Used for public client-side Supabase variables:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
+.env
+
+Used for Prisma database connection:
+
+```bash
+DATABASE_URL=
+```
+
+Supabase setup notes
+NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY come from your Supabase project settings
+DATABASE_URL should use the Supabase Postgres connection string
+For local Prisma migration in this project, use the Session pooler connection string instead of direct connection if direct connection is unreachable
+
+Run database migration:
+
+```bash
+npx prisma migrate dev --name init_mvp_schema
+npx prisma generate
+```
+
+Then start the app:
 
 ```bash
 npm run dev
@@ -14,23 +119,8 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+http://localhost:3000
+```
