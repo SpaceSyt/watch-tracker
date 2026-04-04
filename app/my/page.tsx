@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { AddSampleTitleForm } from "@/components/add-sample-title-form";
 import { PageShell } from "@/components/page-shell";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -32,9 +33,12 @@ export default async function MyListPage() {
       title="My List"
       description="This page is now login-protected. It is still only a placeholder shell for future personal watch-list features."
     >
-      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5">
-        <p className="text-sm text-zinc-500">Authenticated user</p>
-        <p className="mt-2 text-base font-medium text-zinc-900">{userEmail}</p>
+      <div className="grid gap-5">
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5">
+          <p className="text-sm text-zinc-500">Authenticated user</p>
+          <p className="mt-2 text-base font-medium text-zinc-900">{userEmail}</p>
+        </div>
+        <AddSampleTitleForm />
       </div>
     </PageShell>
   );
