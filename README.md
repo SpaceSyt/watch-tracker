@@ -13,13 +13,13 @@ This project currently includes:
 * Next.js App Router setup
 * TypeScript + Tailwind CSS
 * Supabase Auth (email/password)
-* Login / signup / logout
+* Login / signup flows with in-app logout action
 * Protected `/my` page
 * SSR-friendly session handling
 * TMDB-powered `/search` route for movie and TV discovery
-* Dynamic title pages at `/title/[source]/[mediaType]/[externalId]` with details
+* Title pages at `/title/[source]/[mediaType]/[externalId]` with details
 * Shared list workflow: save titles from search/detail into `/my`
-* `add-title` server action with session validation and per-user persistence
+* `addTitleToList` server action with session validation and per-user persistence
 
 Not implemented yet:
 
