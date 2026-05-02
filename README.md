@@ -1,8 +1,8 @@
 # Watch Tracker
 
-A web app for tracking movies, TV shows, and anime.
+A web app for searching TMDB titles and tracking movies, TV shows, and anime in a personal watch list.
 
-Current stage: early MVP foundation.
+Current stage: early MVP with real search, title detail, auth, and list flows.
 
 ---
 
@@ -14,19 +14,47 @@ This project currently includes:
 * TypeScript + Tailwind CSS
 * Supabase Auth (email/password)
 * Login / signup flows with in-app logout action
-* Protected `/my` page
 * SSR-friendly session handling
-* TMDB-powered `/search` route for movie and TV discovery
-* Title pages at `/title/[source]/[mediaType]/[externalId]` with details
-* Shared list workflow: save titles from search/detail into `/my`
-* `addTitleToList` server action with session validation and per-user persistence
+* TMDB-backed title search at `/search`
+* Title detail pages at `/title/tmdb/movie/[externalId]` and `/title/tmdb/tv/[externalId]`
+* Add-to-list actions from title detail pages and saved list entries
+* Protected `/my` page that groups saved titles by watch status
+* Prisma models for user profiles, titles, and user title entries
 
 Not implemented yet:
 
 * Ratings / reviews
 * Tags / custom lists
-* Episode tracking
-* Profile preferences and social features
+* Episode progress tracking UI
+* Editing list entries beyond changing the saved watch status
+
+---
+
+## App Flows
+
+### Search
+
+Use `/search` to search TMDB for movies and TV shows. Search results show a poster when available, title, media type, release year, and overview. Selecting a result opens that title's detail page.
+
+Search requires either `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` in `.env.local`.
+
+### Title Details
+
+Title detail pages are served from `/title/tmdb/[movie|tv]/[externalId]`. They load details from TMDB, show title metadata, poster art, overview, release information, and add-to-list buttons.
+
+Signed-in users can save a title as:
+
+* Want to Watch
+* Watching
+* Completed
+
+If a user is not signed in, the add-to-list action returns an inline login prompt instead of saving.
+
+### My List
+
+Use `/my` to view saved titles. The page requires Supabase auth when Supabase environment variables are configured, then groups entries into Plan to Watch, Watching, and Completed sections sorted by recent updates.
+
+If the list is empty, `/my` links back to `/search` so users can add their first title.
 
 ---
 
@@ -38,6 +66,7 @@ Not implemented yet:
 * Supabase Auth
 * Prisma
 * PostgreSQL (via Supabase)
+* TMDB API
 
 ---
 
@@ -49,6 +78,7 @@ Before running locally, install:
 * Git
 * VS Code
 * A Supabase account/project
+* A TMDB API key or access token
 
 Optional but recommended:
 
@@ -80,6 +110,7 @@ Fill in `.env.local` with:
 * `NEXT_PUBLIC_SUPABASE_ANON_KEY` - optional fallback for older setups
 * `DATABASE_URL` - your Supabase PostgreSQL connection string
 * `TMDB_API_KEY` - your TMDB API key
+* `TMDB_ACCESS_TOKEN` - optional TMDB bearer token; used instead of `TMDB_API_KEY` when present
 
 Install dependencies, generate the Prisma client, and start the dev server:
 
@@ -110,14 +141,29 @@ npx prisma migrate dev --name init_mvp_schema
 
 ---
 
+## Validation
+
+Run the project checks before handing off changes:
+
+```bash
+npm run validate
+```
+
+`npm run validate` runs ESLint and TypeScript checking. The typecheck script also generates the Prisma client first.
+
+---
+
 ## Notes
 
 * Prisma 7 uses `prisma.config.ts` for database config
 * Use Session pooler if direct connection fails
+* Search and title detail pages call TMDB at request time and surface TMDB configuration or request errors in the UI
 
 ---
 
 ## Roadmap (Next Steps)
 
-* Improve list editing flow (change status, delete, notes)
-* Add ratings, progress, and richer metadata on list entries
+* Ratings / reviews
+* Tags / custom lists
+* Episode progress tracking UI
+* Editing entries beyond selecting a watch status
