@@ -64,65 +64,51 @@ git clone <your-repo-url>
 cd watch-tracker
 ```
 
-Install dependencies:
+Create your local environment file:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Fill in `.env.local` with:
+
+* `NEXT_PUBLIC_SUPABASE_URL` - your Supabase Project URL
+* `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` - your Supabase Publishable Key
+* `NEXT_PUBLIC_SUPABASE_ANON_KEY` - optional fallback for older setups
+* `DATABASE_URL` - your Supabase PostgreSQL connection string
+* `TMDB_API_KEY` - your TMDB API key
+
+Install dependencies, generate the Prisma client, and start the dev server:
 
 ```bash
 npm install
+npx prisma generate
+npm run dev
 ```
 
----
+Open http://localhost:3000.
 
-## Environment Variables
-
-### `.env.local`
-
-Used for client-side Supabase variables:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-```
-
-### `.env`
-
-Used for Prisma database connection:
-
-```env
-DATABASE_URL=
-```
+Prisma client must be generated locally after environment setup. If you skip `npx prisma generate`, database-related pages may fail at runtime.
 
 ---
 
 ## Database Setup
 
 1. Create a Supabase project
-2. Go to **Connect → Session pooler**
+2. Go to **Connect > Session pooler**
 3. Copy the connection string (URI)
+4. Use that connection string for `DATABASE_URL` in `.env.local`
 
-Then run:
+Run migrations only when you need to create or update the local schema:
 
 ```bash
 npx prisma migrate dev --name init_mvp_schema
-npx prisma generate
 ```
-
----
-
-## Run the App
-
-```bash
-npm run dev
-```
-
-Open:
-
-http://localhost:3000
 
 ---
 
 ## Notes
 
-* Do NOT put `DATABASE_URL` in `.env.local`
 * Prisma 7 uses `prisma.config.ts` for database config
 * Use Session pooler if direct connection fails
 
