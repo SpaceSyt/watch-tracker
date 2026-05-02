@@ -16,6 +16,13 @@ type UpdateUserTitleEntryFeedbackInput = {
   review: string | null;
 };
 
+type UpdateUserTitleEntryFeedbackInput = {
+  entryId: string;
+  userId: string;
+  rating: number | null;
+  review: string | null;
+};
+
 export async function createOrUpdateUserTitleEntry(
   input: UpsertUserTitleEntryInput,
 ) {
@@ -41,6 +48,37 @@ export async function createOrUpdateUserTitleEntry(
       status: input.status,
       rating: input.rating ?? null,
       review: input.review ?? null,
+    },
+  });
+}
+
+export async function updateUserTitleEntryFeedback(
+  input: UpdateUserTitleEntryFeedbackInput,
+) {
+  const entry = await prisma.userTitleEntry.findFirst({
+    where: {
+      id: input.entryId,
+      userId: input.userId,
+    },
+    include: {
+      title: true,
+    },
+  });
+
+  if (!entry) {
+    throw new Error("Saved title entry not found.");
+  }
+
+  return prisma.userTitleEntry.update({
+    where: {
+      id: entry.id,
+    },
+    data: {
+      rating: input.rating,
+      review: input.review,
+    },
+    include: {
+      title: true,
     },
   });
 }

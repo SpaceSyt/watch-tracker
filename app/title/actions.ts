@@ -16,6 +16,69 @@ import {
 import { getOrCreateUserProfile } from "@/lib/user-profiles";
 
 const maxReviewLength = 500;
+const minRating = 1;
+const maxRating = 10;
+
+function parseEntryRating(value: FormDataEntryValue | null) {
+  if (value === null || value === "") {
+    return { ok: true as const, value: null };
+  }
+
+  if (typeof value !== "string") {
+    return { ok: false as const, message: "Rating must be a number." };
+  }
+
+  const rating = Number(value);
+
+  if (!Number.isInteger(rating) || rating < minRating || rating > maxRating) {
+    return {
+      ok: false as const,
+      message: `Rating must be a whole number from ${minRating} to ${maxRating}.`,
+    };
+  }
+
+  return { ok: true as const, value: rating };
+}
+
+function parseEntryReview(value: FormDataEntryValue | null) {
+  if (value === null || value === "") {
+    return { ok: true as const, value: null };
+  }
+
+  if (typeof value !== "string") {
+    return { ok: false as const, message: "Review must be text." };
+  }
+
+  const review = value.trim();
+
+  if (!review) {
+    return { ok: true as const, value: null };
+  }
+
+  if (review.length > maxReviewLength) {
+    return {
+      ok: false as const,
+      message: `Review must be ${maxReviewLength} characters or fewer.`,
+    };
+  }
+
+  return { ok: true as const, value: review };
+}
+
+function getTitlePath(
+  source: string,
+  mediaType: MediaType,
+  externalId: string,
+) {
+  if (
+    source !== "tmdb" ||
+    (mediaType !== MediaType.MOVIE && mediaType !== MediaType.TV)
+  ) {
+    return null;
+  }
+
+  return `/title/${source}/${mediaType.toLowerCase()}/${externalId}`;
+}
 
 function isEntryStatus(value: string): value is EntryStatus {
   return Object.values(EntryStatus).includes(value as EntryStatus);
@@ -195,14 +258,13 @@ export async function updateTitleEntryFeedback(
       rating: rating.value,
       review: review.value,
     });
-
-    revalidatePath("/my");
-
     const titlePath = getTitlePath(
       entry.title.externalSource,
       entry.title.mediaType,
       entry.title.externalId,
     );
+
+    revalidatePath("/my");
 
     if (titlePath) {
       revalidatePath(titlePath);

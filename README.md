@@ -19,14 +19,13 @@ This project currently includes:
 * Title detail pages at `/title/tmdb/movie/[externalId]` and `/title/tmdb/tv/[externalId]`
 * Add-to-list actions from title detail pages and saved list entries
 * Protected `/my` page that groups saved titles by watch status
+* Per-user 1-10 ratings and short reviews for saved title entries
 * Prisma models for user profiles, titles, and user title entries
 
 Not implemented yet:
 
-* Ratings / reviews
 * Tags / custom lists
 * Episode progress tracking UI
-* Editing list entries beyond changing the saved watch status
 * Anime-specific search or title support
 
 ---
@@ -54,6 +53,8 @@ If a user is not signed in, the add-to-list action returns an inline login promp
 ### My List
 
 Use `/my` to view saved titles. The page requires Supabase auth when Supabase environment variables are configured, then groups entries into Plan to Watch, Watching, and Completed sections sorted by recent updates.
+
+Each saved entry can also store your private 1-10 rating and a short review. Rating and review edits are available from the saved entry card on `/my`.
 
 If the list is empty, `/my` links back to `/search` so users can add their first title.
 
@@ -171,7 +172,6 @@ npx tsc --noEmit --incremental false
 
 ## Roadmap (Next Steps)
 
-* Ratings / reviews
 * Tags / custom lists
 * Episode progress tracking UI
-* Editing entries beyond selecting a watch status
+* Additional entry editing beyond watch status, rating, and short review

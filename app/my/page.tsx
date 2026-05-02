@@ -218,7 +218,8 @@ export default async function MyListPage() {
                           </div>
                           <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                             <p className="font-medium text-zinc-900">
-                              Your rating: {entry.rating ? `${entry.rating}/10` : "Not rated"}
+                              Your rating:{" "}
+                              {entry.rating ? `${entry.rating}/10` : "Not rated"}
                             </p>
                             {entry.review ? (
                               <p className="mt-2 leading-6 text-zinc-600">
@@ -235,6 +236,7 @@ export default async function MyListPage() {
                               source="tmdb"
                               externalId={entry.title.externalId}
                               mediaType={entry.title.mediaType}
+                              entryId={entry.id}
                               initialRating={entry.rating}
                               initialReview={entry.review}
                               showRatingReview
