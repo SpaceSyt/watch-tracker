@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "npm run prisma:generate && tsc --noEmit --incremental false",
+    "validate": "npm run lint && npm run typecheck",
     "prisma:generate": "prisma generate",
-    "typecheck": "npm run prisma:generate && tsc --noEmit",
-    "validate": "npm run lint && npm run typecheck"
+    "prebuild": "npm run prisma:generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",
@@ -32,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^16.6.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
