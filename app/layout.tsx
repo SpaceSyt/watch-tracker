@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Watch Tracker",
-  description: "Track shows, dramas, and anime in one place.",
+  description: "Search TMDB movies and TV shows, then track them in one place.",
 };
 
 export default function RootLayout({

@@ -1,6 +1,6 @@
 # Watch Tracker
 
-A web app for searching TMDB titles and tracking movies, TV shows, and anime in a personal watch list.
+A web app for searching TMDB movies and TV shows, then tracking them in a personal watch list.
 
 Current stage: early MVP with real search, title detail, auth, and list flows.
 
@@ -27,6 +27,7 @@ Not implemented yet:
 * Tags / custom lists
 * Episode progress tracking UI
 * Editing list entries beyond changing the saved watch status
+* Anime-specific search or title support
 
 ---
 
@@ -40,7 +41,7 @@ Search requires either `TMDB_ACCESS_TOKEN` or `TMDB_API_KEY` in `.env.local`.
 
 ### Title Details
 
-Title detail pages are served from `/title/tmdb/[movie|tv]/[externalId]`. They load details from TMDB, show title metadata, poster art, overview, release information, and add-to-list buttons.
+Title detail pages are served from `/title/tmdb/movie/[externalId]` and `/title/tmdb/tv/[externalId]`. They load details from TMDB, show title metadata, poster art, overview, release information, and add-to-list buttons.
 
 Signed-in users can save a title as:
 
@@ -149,7 +150,14 @@ Run the project checks before handing off changes:
 npm run validate
 ```
 
-`npm run validate` runs ESLint and TypeScript checking. The typecheck script also generates the Prisma client first.
+For read-only validation without generated-file writes, run:
+
+```bash
+npm run lint
+npx tsc --noEmit --incremental false
+```
+
+`npm run validate` runs ESLint and the project typecheck script. The typecheck script generates the Prisma client first, so full validation can update generated Prisma client files.
 
 ---
 

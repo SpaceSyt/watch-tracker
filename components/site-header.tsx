@@ -28,7 +28,7 @@ export async function SiteHeader() {
             Watch Tracker
           </Link>
           <p className="text-sm text-zinc-500">
-            A simple starter shell for tracking movies, series, and anime.
+            Search TMDB movies and TV shows, then track them in your list.
           </p>
         </div>
         <div className="flex flex-col items-start gap-3 md:items-end">
@@ -38,15 +38,15 @@ export async function SiteHeader() {
             <p className="text-sm text-zinc-500">Not logged in</p>
           )}
           <nav aria-label="Primary" className="flex flex-wrap gap-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-            >
-              {item.label}
-            </Link>
-          ))}
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              >
+                {item.label}
+              </Link>
+            ))}
             {userEmail ? (
               <>
                 <Link
