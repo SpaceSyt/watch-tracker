@@ -16,14 +16,17 @@ This project currently includes:
 * Login / signup / logout
 * Protected `/my` page
 * SSR-friendly session handling
-* Basic page skeleton for future development
+* TMDB-powered `/search` route for movie and TV discovery
+* Dynamic title pages at `/title/[source]/[mediaType]/[externalId]` with details
+* Shared list workflow: save titles from search/detail into `/my`
+* `add-title` server action with session validation and per-user persistence
 
 Not implemented yet:
 
-* Title search
 * Ratings / reviews
 * Tags / custom lists
 * Episode tracking
+* Profile preferences and social features
 
 ---
 
@@ -116,8 +119,5 @@ npx prisma migrate dev --name init_mvp_schema
 
 ## Roadmap (Next Steps)
 
-* TMDB search integration
-* Title detail page
-* Add to list from real data
-* My list UI with real entries
-* Editing entries (status, rating, progress)
+* Improve list editing flow (change status, delete, notes)
+* Add ratings, progress, and richer metadata on list entries
