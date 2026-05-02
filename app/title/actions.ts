@@ -15,74 +15,7 @@ import {
 } from "@/lib/user-title-entries";
 import { getOrCreateUserProfile } from "@/lib/user-profiles";
 
-const MAX_REVIEW_LENGTH = 500;
-const MIN_RATING = 1;
-const MAX_RATING = 10;
-
-function parseEntryRating(value: FormDataEntryValue | null) {
-  if (value === null || value === "") {
-    return { ok: true as const, value: null };
-  }
-
-  if (typeof value !== "string") {
-    return { ok: false as const, message: "Rating must be a number." };
-  }
-
-  const rating = Number(value);
-
-  if (
-    !Number.isInteger(rating) ||
-    rating < MIN_RATING ||
-    rating > MAX_RATING
-  ) {
-    return {
-      ok: false as const,
-      message: `Rating must be a whole number from ${MIN_RATING} to ${MAX_RATING}.`,
-    };
-  }
-
-  return { ok: true as const, value: rating };
-}
-
-function parseEntryReview(value: FormDataEntryValue | null) {
-  if (value === null || value === "") {
-    return { ok: true as const, value: null };
-  }
-
-  if (typeof value !== "string") {
-    return { ok: false as const, message: "Review must be text." };
-  }
-
-  const review = value.trim();
-
-  if (!review) {
-    return { ok: true as const, value: null };
-  }
-
-  if (review.length > MAX_REVIEW_LENGTH) {
-    return {
-      ok: false as const,
-      message: `Review must be ${MAX_REVIEW_LENGTH} characters or fewer.`,
-    };
-  }
-
-  return { ok: true as const, value: review };
-}
-
-function getTitlePath(
-  source: string,
-  mediaType: MediaType,
-  externalId: string,
-) {
-  if (
-    source !== "tmdb" ||
-    (mediaType !== MediaType.MOVIE && mediaType !== MediaType.TV)
-  ) {
-    return null;
-  }
-
-  return `/title/${source}/${mediaType.toLowerCase()}/${externalId}`;
-}
+const maxReviewLength = 500;
 
 function isEntryStatus(value: string): value is EntryStatus {
   return Object.values(EntryStatus).includes(value as EntryStatus);
@@ -102,6 +35,49 @@ function parseReleaseDate(value: string | null) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+type ParsedRating = number | null | "invalid";
+type ParsedReview = string | null | "invalid";
+
+function parseRating(value: FormDataEntryValue | null): ParsedRating {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return "invalid";
+  }
+
+  if (value === "") {
+    return null;
+  }
+
+  const rating = Number(value);
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
+    return "invalid";
+  }
+
+  return rating;
+}
+
+function parseReview(value: FormDataEntryValue | null): ParsedReview {
+  if (value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return "invalid";
+  }
+
+  const review = value.trim();
+
+  if (review.length > maxReviewLength) {
+    return "invalid";
+  }
+
+  return review || null;
+}
+
 export async function addTitleToList(
   _previousState: AddTitleEntryState,
   formData: FormData,
@@ -110,6 +86,10 @@ export async function addTitleToList(
   const externalId = formData.get("externalId");
   const mediaType = formData.get("mediaType");
   const status = formData.get("status");
+  const shouldUpdateRating = formData.has("rating");
+  const shouldUpdateReview = formData.has("review");
+  const rating = shouldUpdateRating ? parseRating(formData.get("rating")) : null;
+  const review = shouldUpdateReview ? parseReview(formData.get("review")) : null;
 
   if (source !== "tmdb") {
     return { status: "error", message: "Unsupported title source." };
@@ -121,7 +101,9 @@ export async function addTitleToList(
     typeof mediaType !== "string" ||
     !isMediaType(mediaType) ||
     typeof status !== "string" ||
-    !isEntryStatus(status)
+    !isEntryStatus(status) ||
+    rating === "invalid" ||
+    review === "invalid"
   ) {
     return { status: "error", message: "Invalid add-to-list request." };
   }
@@ -151,6 +133,8 @@ export async function addTitleToList(
       userId: userProfile.id,
       titleId: title.id,
       status,
+      ...(shouldUpdateRating ? { rating } : {}),
+      ...(shouldUpdateReview ? { review } : {}),
     });
 
     revalidatePath("/my");

@@ -216,11 +216,28 @@ export default async function MyListPage() {
                                 "No description available."}
                             </p>
                           </div>
+                          <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                            <p className="font-medium text-zinc-900">
+                              Your rating: {entry.rating ? `${entry.rating}/10` : "Not rated"}
+                            </p>
+                            {entry.review ? (
+                              <p className="mt-2 leading-6 text-zinc-600">
+                                {entry.review}
+                              </p>
+                            ) : (
+                              <p className="mt-2 text-zinc-500">
+                                No review yet.
+                              </p>
+                            )}
+                          </div>
                           {isTmdbListMediaType(entry.title.mediaType) ? (
                             <AddTitleButtons
                               source="tmdb"
                               externalId={entry.title.externalId}
                               mediaType={entry.title.mediaType}
+                              initialRating={entry.rating}
+                              initialReview={entry.review}
+                              showRatingReview
                             />
                           ) : null}
                         </div>

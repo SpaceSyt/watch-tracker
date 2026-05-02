@@ -5,6 +5,8 @@ type UpsertUserTitleEntryInput = {
   userId: string;
   titleId: string;
   status: EntryStatus;
+  rating?: number | null;
+  review?: string | null;
 };
 
 type UpdateUserTitleEntryFeedbackInput = {
@@ -17,6 +19,11 @@ type UpdateUserTitleEntryFeedbackInput = {
 export async function createOrUpdateUserTitleEntry(
   input: UpsertUserTitleEntryInput,
 ) {
+  const ratingReviewUpdate = {
+    ...(input.rating !== undefined ? { rating: input.rating } : {}),
+    ...(input.review !== undefined ? { review: input.review } : {}),
+  };
+
   return prisma.userTitleEntry.upsert({
     where: {
       userId_titleId: {
@@ -26,11 +33,14 @@ export async function createOrUpdateUserTitleEntry(
     },
     update: {
       status: input.status,
+      ...ratingReviewUpdate,
     },
     create: {
       userId: input.userId,
       titleId: input.titleId,
       status: input.status,
+      rating: input.rating ?? null,
+      review: input.review ?? null,
     },
   });
 }
