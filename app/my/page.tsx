@@ -77,25 +77,29 @@ export default async function MyListPage() {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
-  const userEmail = user?.email ?? "Signed-in user";
-  const userProfile = user
-    ? await prisma.userProfile.findUnique({
-        where: {
-          authUserId: user.id,
+
+  if (userError || !user) {
+    redirect("/auth/login");
+  }
+
+  const userEmail = user.email ?? "Signed-in user";
+  const userProfile = await prisma.userProfile.findUnique({
+    where: {
+      authUserId: user.id,
+    },
+    include: {
+      entries: {
+        orderBy: {
+          updatedAt: "desc",
         },
         include: {
-          entries: {
-            orderBy: {
-              updatedAt: "desc",
-            },
-            include: {
-              title: true,
-            },
-          },
+          title: true,
         },
-      })
-    : null;
+      },
+    },
+  });
   const entries = userProfile?.entries ?? [];
 
   return (
