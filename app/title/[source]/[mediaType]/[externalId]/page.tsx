@@ -48,8 +48,12 @@ export default async function TitlePage({ params }: TitlePageProps) {
       <PageShell
         eyebrow="Title"
         title="Title not found"
-        description={titleResult.error ?? "Unable to load this title."}
-      />
+        description="The title could not be loaded from TMDB."
+      >
+        <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          {titleResult.error ?? "Unable to load this title."}
+        </div>
+      </PageShell>
     );
   }
 
@@ -57,12 +61,12 @@ export default async function TitlePage({ params }: TitlePageProps) {
 
   return (
     <PageShell
-      eyebrow={`${title.mediaType} / ${getYear(title.releaseDate)}`}
+      eyebrow="Title"
       title={title.title}
-      description={title.description || "No description available."}
+      description={`${title.mediaType} / ${getYear(title.releaseDate)}`}
     >
-      <div className="grid gap-6 md:grid-cols-[180px_1fr]">
-        <div className="flex h-[270px] w-[180px] items-center justify-center overflow-hidden rounded-md bg-zinc-200 text-sm text-zinc-500">
+      <div className="grid gap-7 md:grid-cols-[220px_1fr]">
+        <div className="flex h-[330px] w-[220px] items-center justify-center overflow-hidden rounded-md bg-zinc-100 text-sm font-medium text-zinc-400">
           {title.posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -74,8 +78,22 @@ export default async function TitlePage({ params }: TitlePageProps) {
             "No poster"
           )}
         </div>
-        <div className="space-y-5">
-          <dl className="grid gap-3 text-sm text-zinc-600 sm:grid-cols-2">
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600">
+              {title.mediaType === "MOVIE" ? "Movie" : "TV"}
+            </span>
+            <span className="text-sm text-zinc-500">
+              {getYear(title.releaseDate)}
+            </span>
+            <span className="text-sm text-zinc-500">tmdb / {title.externalId}</span>
+          </div>
+
+          <p className="max-w-3xl text-base leading-7 text-zinc-700">
+            {title.description || "No description available."}
+          </p>
+
+          <dl className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600 sm:grid-cols-2">
             <div>
               <dt className="font-medium text-zinc-900">Original title</dt>
               <dd>{title.originalTitle || title.title}</dd>
@@ -94,11 +112,18 @@ export default async function TitlePage({ params }: TitlePageProps) {
             </div>
           </dl>
 
-          <AddTitleButtons
-            source="tmdb"
-            externalId={title.externalId}
-            mediaType={title.mediaType}
-          />
+          <div className="rounded-lg border border-zinc-200 bg-white p-4">
+            <h2 className="text-sm font-semibold text-zinc-950">
+              Add to your list
+            </h2>
+            <div className="mt-3">
+              <AddTitleButtons
+                source="tmdb"
+                externalId={title.externalId}
+                mediaType={title.mediaType}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </PageShell>

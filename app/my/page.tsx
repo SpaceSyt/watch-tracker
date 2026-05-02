@@ -8,9 +8,21 @@ import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 const statusGroups = [
-  { status: EntryStatus.PLAN_TO_WATCH, label: "Plan to Watch" },
-  { status: EntryStatus.WATCHING, label: "Watching" },
-  { status: EntryStatus.COMPLETED, label: "Completed" },
+  {
+    status: EntryStatus.PLAN_TO_WATCH,
+    label: "Plan to Watch",
+    description: "Titles you want to start later.",
+  },
+  {
+    status: EntryStatus.WATCHING,
+    label: "Watching",
+    description: "Titles currently in progress.",
+  },
+  {
+    status: EntryStatus.COMPLETED,
+    label: "Completed",
+    description: "Titles you have finished.",
+  },
 ];
 
 function getYear(releaseDate: Date | null) {
@@ -31,6 +43,18 @@ function formatUpdatedAt(updatedAt: Date) {
     day: "numeric",
     year: "numeric",
   }).format(updatedAt);
+}
+
+function formatStatus(status: EntryStatus) {
+  if (status === EntryStatus.PLAN_TO_WATCH) {
+    return "Want to Watch";
+  }
+
+  if (status === EntryStatus.WATCHING) {
+    return "Watching";
+  }
+
+  return "Completed";
 }
 
 export default async function MyListPage() {
@@ -78,47 +102,68 @@ export default async function MyListPage() {
     <PageShell
       eyebrow="Library"
       title="My List"
-      description="Your saved titles grouped by watch status."
+      description="Your saved titles, grouped by watch status and sorted by recent updates."
     >
-      <div className="grid gap-5">
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5">
-          <p className="text-sm text-zinc-500">Authenticated user</p>
-          <p className="mt-2 text-base font-medium text-zinc-900">{userEmail}</p>
+      <div className="grid gap-6">
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-zinc-500">Signed in as</p>
+              <p className="mt-1 text-base font-medium text-zinc-900">
+                {userEmail}
+              </p>
+            </div>
+            <Link
+              href="/search"
+              className="inline-flex w-fit rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+            >
+              Add a title
+            </Link>
+          </div>
         </div>
 
         {entries.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 bg-white p-5">
-            <p className="text-sm text-zinc-600">
-              No titles saved yet. Search for a title and add it to your list.
+          <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-10 text-center">
+            <h2 className="text-lg font-semibold text-zinc-950">
+              Your list is empty
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">
+              Search for a movie or TV title, open its detail page, and choose a
+              watch status to start building your list.
             </p>
             <Link
               href="/search"
-              className="mt-4 inline-flex rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
+              className="mt-5 inline-flex rounded-md border border-zinc-300 bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
             >
-              Go to Search
+              Search titles
             </Link>
           </div>
         ) : null}
 
-        <div className="grid gap-5">
+        <div className="grid gap-7">
           {statusGroups.map((group) => {
             const groupEntries = entries.filter(
               (entry) => entry.status === group.status,
             );
 
             return (
-              <section key={group.status} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-zinc-950">
-                    {group.label}
-                  </h2>
-                  <span className="text-sm text-zinc-500">
+              <section key={group.status} className="space-y-4">
+                <div className="flex items-end justify-between gap-4 border-b border-zinc-200 pb-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-zinc-950">
+                      {group.label}
+                    </h2>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {group.description}
+                    </p>
+                  </div>
+                  <span className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-sm text-zinc-600">
                     {groupEntries.length}
                   </span>
                 </div>
 
                 {groupEntries.length === 0 ? (
-                  <p className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
+                  <p className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-500">
                     No titles in this group.
                   </p>
                 ) : (
@@ -126,11 +171,11 @@ export default async function MyListPage() {
                     {groupEntries.map((entry) => (
                       <article
                         key={entry.id}
-                        className="grid gap-4 rounded-lg border border-zinc-200 bg-white p-4 sm:grid-cols-[72px_1fr]"
+                        className="grid gap-4 rounded-lg border border-zinc-200 bg-white p-4 sm:grid-cols-[88px_1fr]"
                       >
                         <Link
                           href={`/title/${entry.title.externalSource}/${getMediaTypePath(entry.title.mediaType)}/${entry.title.externalId}`}
-                          className="flex h-28 w-[72px] items-center justify-center overflow-hidden rounded-md bg-zinc-200 text-xs text-zinc-500"
+                          className="flex h-32 w-[88px] items-center justify-center overflow-hidden rounded-md bg-zinc-100 text-center text-xs font-medium text-zinc-400"
                         >
                           {entry.title.posterUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -140,7 +185,7 @@ export default async function MyListPage() {
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            "No poster"
+                            <span>No poster</span>
                           )}
                         </Link>
                         <div className="min-w-0 space-y-4">
@@ -152,8 +197,8 @@ export default async function MyListPage() {
                               >
                                 {entry.title.title}
                               </Link>
-                              <span className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600">
-                                {entry.status}
+                              <span className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700">
+                                {formatStatus(entry.status)}
                               </span>
                               <span className="text-sm text-zinc-500">
                                 {entry.title.mediaType} / {getYear(entry.title.releaseDate)}

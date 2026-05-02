@@ -20,7 +20,7 @@ function StatusButton({ label, value }: { label: string; value: string }) {
       name="status"
       value={value}
       disabled={pending}
-      className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
+      className="min-h-10 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
     >
       {pending ? "Saving..." : label}
     </button>
@@ -38,8 +38,8 @@ export function AddTitleButtons({
   );
 
   return (
-    <div className="space-y-4">
-      <form action={formAction} className="flex flex-wrap gap-3">
+    <div className="space-y-3">
+      <form action={formAction} className="flex flex-wrap gap-2">
         <input type="hidden" name="source" value={source} />
         <input type="hidden" name="externalId" value={externalId} />
         <input type="hidden" name="mediaType" value={mediaType} />
@@ -50,7 +50,8 @@ export function AddTitleButtons({
 
       {state.message ? (
         <p
-          className={`rounded-md px-3 py-2 text-sm ${
+          role={state.status === "error" ? "alert" : "status"}
+          className={`rounded-md px-3 py-2 text-sm font-medium ${
             state.status === "error"
               ? "border border-red-200 bg-red-50 text-red-700"
               : "border border-emerald-200 bg-emerald-50 text-emerald-700"
