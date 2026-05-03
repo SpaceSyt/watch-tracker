@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { LogoutButton } from "@/components/logout-button";
+import { AccountMenu } from "@/components/account-menu";
+import { SettingsMenu } from "@/components/settings-menu";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
@@ -32,12 +33,7 @@ export async function SiteHeader() {
           </p>
         </div>
         <div className="flex flex-col items-start gap-3 md:items-end">
-          {userEmail ? (
-            <p className="text-sm text-zinc-500">Signed in as {userEmail}</p>
-          ) : (
-            <p className="text-sm text-zinc-500">Not logged in</p>
-          )}
-          <nav aria-label="Primary" className="flex flex-wrap gap-2">
+          <nav aria-label="Primary" className="flex flex-wrap items-center gap-2">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -48,31 +44,15 @@ export async function SiteHeader() {
               </Link>
             ))}
             {userEmail ? (
-              <>
-                <Link
-                  href="/my"
-                  className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-                >
-                  My List
-                </Link>
-                <LogoutButton />
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
+              <Link
+                href="/my"
+                className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+              >
+                My List
+              </Link>
+            ) : null}
+            <SettingsMenu />
+            <AccountMenu userEmail={userEmail} />
           </nav>
         </div>
       </div>
