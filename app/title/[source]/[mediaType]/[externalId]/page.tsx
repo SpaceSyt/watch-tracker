@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { EntryStatus } from "@/app/generated/prisma/enums";
 import { AddTitleButtons } from "@/components/add-title-buttons";
+import { EpisodeProgressForm } from "@/components/episode-progress-form";
 import { PageShell } from "@/components/page-shell";
 import { prisma } from "@/lib/prisma";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -35,7 +36,18 @@ function canEditRatingReview(status: EntryStatus) {
   return status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED;
 }
 
-async function getSavedTitleEntry(source: string, externalId: string) {
+function canEditEpisodeProgress(status: EntryStatus, mediaType: "MOVIE" | "TV") {
+  return (
+    mediaType === "TV" &&
+    (status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED)
+  );
+}
+
+async function getSavedTitleEntry(
+  source: string,
+  externalId: string,
+  mediaType: "MOVIE" | "TV",
+) {
   if (!hasSupabaseEnv()) {
     return null;
   }
@@ -58,6 +70,7 @@ async function getSavedTitleEntry(source: string, externalId: string) {
       title: {
         externalSource: source,
         externalId,
+        mediaType,
       },
     },
     select: {
@@ -65,6 +78,12 @@ async function getSavedTitleEntry(source: string, externalId: string) {
       status: true,
       rating: true,
       review: true,
+      progressCurrent: true,
+      title: {
+        select: {
+          totalEpisodes: true,
+        },
+      },
     },
   });
 }
@@ -100,9 +119,16 @@ export default async function TitlePage({ params }: TitlePageProps) {
   }
 
   const { title } = titleResult;
-  const savedEntry = await getSavedTitleEntry(source, title.externalId);
+  const savedEntry = await getSavedTitleEntry(
+    source,
+    title.externalId,
+    parsedMediaType,
+  );
   const showRatingReview =
     savedEntry !== null && canEditRatingReview(savedEntry.status);
+  const showEpisodeProgress =
+    savedEntry !== null && canEditEpisodeProgress(savedEntry.status, title.mediaType);
+  const savedTotalEpisodes = savedEntry?.title.totalEpisodes ?? null;
 
   return (
     <PageShell
@@ -161,7 +187,7 @@ export default async function TitlePage({ params }: TitlePageProps) {
             <h2 className="text-sm font-semibold text-zinc-950">
               Add to your list
             </h2>
-            <div className="mt-3">
+            <div className="mt-3 space-y-3">
               <AddTitleButtons
                 source="tmdb"
                 externalId={title.externalId}
@@ -172,11 +198,18 @@ export default async function TitlePage({ params }: TitlePageProps) {
                 initialReview={savedEntry?.review}
                 showRatingReview={showRatingReview}
               />
+              {showEpisodeProgress ? (
+                <EpisodeProgressForm
+                  entryId={savedEntry.id}
+                  initialProgressCurrent={savedEntry.progressCurrent}
+                  totalEpisodes={savedTotalEpisodes}
+                />
+              ) : null}
             </div>
             {savedEntry?.status === EntryStatus.PLAN_TO_WATCH ? (
               <p className="mt-3 text-sm text-zinc-500">
-                Ratings and reviews are available after moving this title to
-                Watching or Completed.
+                Ratings, reviews, and episode progress are available after moving
+                this title to Watching or Completed.
               </p>
             ) : null}
           </div>

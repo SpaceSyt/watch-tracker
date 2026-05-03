@@ -5,6 +5,7 @@ import { EntryStatus, MediaType } from "@/app/generated/prisma/enums";
 import type {
   AddTitleEntryState,
   UpdateTitleEntryFeedbackState,
+  UpdateTitleEntryProgressState,
 } from "@/app/title/action-state";
 import { createClient } from "@/lib/supabase/server";
 import { findOrCreateTitle } from "@/lib/titles";
@@ -13,12 +14,14 @@ import {
   createOrUpdateUserTitleEntry,
   deleteUserTitleEntry,
   updateUserTitleEntryFeedback,
+  updateUserTitleEntryProgress as saveUserTitleEntryProgress,
 } from "@/lib/user-title-entries";
 import { getOrCreateUserProfile } from "@/lib/user-profiles";
 
 const maxReviewLength = 500;
 const minRating = 1;
 const maxRating = 10;
+const maxProgressCurrent = 2_147_483_647;
 
 function parseEntryRating(value: FormDataEntryValue | null) {
   if (value === null || value === "") {
@@ -64,6 +67,34 @@ function parseEntryReview(value: FormDataEntryValue | null) {
   }
 
   return { ok: true as const, value: review };
+}
+
+function parseEpisodeProgress(value: FormDataEntryValue | null) {
+  if (value === "") {
+    return { ok: true as const, value: null };
+  }
+
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    return {
+      ok: false as const,
+      message: "Episode progress must be a whole number.",
+    };
+  }
+
+  const progressCurrent = Number(value);
+
+  if (
+    !Number.isSafeInteger(progressCurrent) ||
+    progressCurrent < 0 ||
+    progressCurrent > maxProgressCurrent
+  ) {
+    return {
+      ok: false as const,
+      message: `Episode progress must be ${maxProgressCurrent} or fewer.`,
+    };
+  }
+
+  return { ok: true as const, value: progressCurrent };
 }
 
 function getTitlePath(
@@ -290,6 +321,67 @@ export async function updateTitleEntryFeedback(
       writeError instanceof Error
         ? writeError.message
         : "Failed to update this saved title.";
+
+    return { status: "error", message };
+  }
+}
+
+export async function updateTitleEntryProgress(
+  _previousState: UpdateTitleEntryProgressState,
+  formData: FormData,
+): Promise<UpdateTitleEntryProgressState> {
+  const entryId = formData.get("entryId");
+  const progressCurrent = parseEpisodeProgress(formData.get("progressCurrent"));
+
+  if (typeof entryId !== "string" || !entryId.trim()) {
+    return { status: "error", message: "Invalid saved title entry." };
+  }
+
+  if (!progressCurrent.ok) {
+    return { status: "error", message: progressCurrent.message };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return {
+      status: "error",
+      message: "Log in before updating episode progress.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+    const entry = await saveUserTitleEntryProgress({
+      entryId: entryId.trim(),
+      userId: userProfile.id,
+      progressCurrent: progressCurrent.value,
+    });
+    const titlePath = getTitlePath(
+      entry.title.externalSource,
+      entry.title.mediaType,
+      entry.title.externalId,
+    );
+
+    revalidatePath("/my");
+
+    if (titlePath) {
+      revalidatePath(titlePath);
+    }
+
+    return {
+      status: "success",
+      message: "Saved your episode progress.",
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to update episode progress.";
 
     return { status: "error", message };
   }

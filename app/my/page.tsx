@@ -41,6 +41,60 @@ function formatUpdatedAt(updatedAt: Date) {
   }).format(updatedAt);
 }
 
+function canShowEpisodeProgress(status: EntryStatus, mediaType: string) {
+  return (
+    mediaType === "TV" &&
+    (status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED)
+  );
+}
+
+function formatEpisodeProgress(
+  progressCurrent: number | null,
+  totalEpisodes: number | null,
+) {
+  const hasKnownTotal = totalEpisodes !== null && totalEpisodes > 0;
+
+  if (progressCurrent === null) {
+    return hasKnownTotal ? `Not started / ${totalEpisodes} episodes` : null;
+  }
+
+  if (!hasKnownTotal) {
+    return progressCurrent === 0 ? "Not started" : `${progressCurrent} episodes`;
+  }
+
+  return progressCurrent === 0
+    ? `Not started / ${totalEpisodes} episodes`
+    : `${progressCurrent} / ${totalEpisodes} episodes`;
+}
+
+function EpisodeProgressSummary({
+  status,
+  mediaType,
+  progressCurrent,
+  totalEpisodes,
+}: {
+  status: EntryStatus;
+  mediaType: string;
+  progressCurrent: number | null;
+  totalEpisodes: number | null;
+}) {
+  if (!canShowEpisodeProgress(status, mediaType)) {
+    return null;
+  }
+
+  const progress = formatEpisodeProgress(progressCurrent, totalEpisodes);
+
+  if (!progress) {
+    return null;
+  }
+
+  return (
+    <p className="mt-2 text-sm font-medium text-zinc-700">
+      Progress: {progress}
+    </p>
+  );
+}
+
 function formatStatus(status: EntryStatus) {
   if (status === EntryStatus.PLAN_TO_WATCH) {
     return "Want to Watch";
@@ -212,6 +266,12 @@ export default async function MyListPage() {
                                 {entry.title.description ||
                                   "No description available."}
                               </p>
+                              <EpisodeProgressSummary
+                                status={entry.status}
+                                mediaType={entry.title.mediaType}
+                                progressCurrent={entry.progressCurrent}
+                                totalEpisodes={entry.title.totalEpisodes}
+                              />
                             </div>
                             <details className="relative shrink-0 text-sm">
                               <summary className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-md border border-zinc-300 bg-white font-semibold text-zinc-700 hover:bg-zinc-100">

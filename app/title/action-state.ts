@@ -18,3 +18,14 @@ export const initialUpdateTitleEntryFeedbackState: UpdateTitleEntryFeedbackState
     status: "idle",
     message: null,
   };
+
+export type UpdateTitleEntryProgressState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
+export const initialUpdateTitleEntryProgressState: UpdateTitleEntryProgressState =
+  {
+    status: "idle",
+    message: null,
+  };

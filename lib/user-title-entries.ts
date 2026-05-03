@@ -1,4 +1,4 @@
-import { EntryStatus } from "@/app/generated/prisma/enums";
+import { EntryStatus, MediaType } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 type UpsertUserTitleEntryInput = {
@@ -14,6 +14,12 @@ type UpdateUserTitleEntryFeedbackInput = {
   userId: string;
   rating: number | null;
   review: string | null;
+};
+
+type UpdateUserTitleEntryProgressInput = {
+  entryId: string;
+  userId: string;
+  progressCurrent: number | null;
 };
 
 type DeleteUserTitleEntryInput = {
@@ -116,6 +122,62 @@ export async function updateUserTitleEntryFeedback(
     data: {
       rating: input.rating,
       review: input.review,
+    },
+    include: {
+      title: true,
+    },
+  });
+}
+
+export async function updateUserTitleEntryProgress(
+  input: UpdateUserTitleEntryProgressInput,
+) {
+  const entry = await prisma.userTitleEntry.findFirst({
+    where: {
+      id: input.entryId,
+      userId: input.userId,
+    },
+    include: {
+      title: true,
+    },
+  });
+
+  if (!entry) {
+    throw new Error("Saved title entry not found.");
+  }
+
+  if (entry.title.mediaType !== MediaType.TV) {
+    throw new Error("Episode progress is only available for TV titles.");
+  }
+
+  if (
+    entry.status !== EntryStatus.WATCHING &&
+    entry.status !== EntryStatus.COMPLETED
+  ) {
+    throw new Error(
+      "Episode progress is available for Watching or Completed TV titles.",
+    );
+  }
+
+  const totalEpisodes = entry.title.totalEpisodes;
+
+  if (
+    input.progressCurrent !== null &&
+    totalEpisodes !== null &&
+    totalEpisodes > 0 &&
+    input.progressCurrent > totalEpisodes
+  ) {
+    throw new Error(
+      `Episode progress must be ${totalEpisodes} episodes or fewer.`,
+    );
+  }
+
+  return prisma.userTitleEntry.update({
+    where: {
+      id: entry.id,
+    },
+    data: {
+      progressCurrent: input.progressCurrent,
     },
     include: {
       title: true,
