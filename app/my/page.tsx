@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { EntryStatus } from "@/app/generated/prisma/enums";
-import { AddTitleButtons } from "@/components/add-title-buttons";
 import { PageShell } from "@/components/page-shell";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
@@ -31,10 +30,6 @@ function getYear(releaseDate: Date | null) {
 
 function getMediaTypePath(mediaType: string) {
   return mediaType.toLowerCase();
-}
-
-function isTmdbListMediaType(mediaType: string): mediaType is "MOVIE" | "TV" {
-  return mediaType === "MOVIE" || mediaType === "TV";
 }
 
 function formatUpdatedAt(updatedAt: Date) {
@@ -222,7 +217,7 @@ export default async function MyListPage() {
                               {entry.rating ? `${entry.rating}/10` : "Not rated"}
                             </p>
                             {entry.review ? (
-                              <p className="mt-2 leading-6 text-zinc-600">
+                              <p className="mt-2 line-clamp-2 leading-6 text-zinc-600">
                                 {entry.review}
                               </p>
                             ) : (
@@ -231,17 +226,6 @@ export default async function MyListPage() {
                               </p>
                             )}
                           </div>
-                          {isTmdbListMediaType(entry.title.mediaType) ? (
-                            <AddTitleButtons
-                              source="tmdb"
-                              externalId={entry.title.externalId}
-                              mediaType={entry.title.mediaType}
-                              entryId={entry.id}
-                              initialRating={entry.rating}
-                              initialReview={entry.review}
-                              showRatingReview
-                            />
-                          ) : null}
                         </div>
                       </article>
                     ))}

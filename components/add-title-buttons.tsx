@@ -7,18 +7,40 @@ import {
   initialUpdateTitleEntryFeedbackState,
 } from "@/app/title/action-state";
 import { addTitleToList, updateTitleEntryFeedback } from "@/app/title/actions";
+import { EntryStatus } from "@/app/generated/prisma/enums";
 
 type AddTitleButtonsProps = {
   source: "tmdb";
   externalId: string;
   mediaType: "MOVIE" | "TV";
   entryId?: string;
+  currentStatus?: EntryStatus | null;
   initialRating?: number | null;
   initialReview?: string | null;
   showRatingReview?: boolean;
 };
 
-function StatusButton({ label, value }: { label: string; value: string }) {
+function formatEntryStatus(status: EntryStatus) {
+  if (status === EntryStatus.PLAN_TO_WATCH) {
+    return "Want to Watch";
+  }
+
+  if (status === EntryStatus.WATCHING) {
+    return "Watching";
+  }
+
+  return "Completed";
+}
+
+function StatusButton({
+  label,
+  selected,
+  value,
+}: {
+  label: string;
+  selected: boolean;
+  value: EntryStatus;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -27,7 +49,12 @@ function StatusButton({ label, value }: { label: string; value: string }) {
       name="status"
       value={value}
       disabled={pending}
-      className="min-h-10 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
+      aria-pressed={selected}
+      className={`min-h-10 rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed ${
+        selected
+          ? "border-zinc-900 bg-zinc-900 text-white shadow-sm hover:bg-zinc-800 disabled:text-zinc-200"
+          : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100 disabled:text-zinc-400"
+      }`}
     >
       {pending ? "Saving..." : label}
     </button>
@@ -53,6 +80,7 @@ export function AddTitleButtons({
   externalId,
   mediaType,
   entryId,
+  currentStatus,
   initialRating,
   initialReview,
   showRatingReview = false,
@@ -65,6 +93,7 @@ export function AddTitleButtons({
     updateTitleEntryFeedback,
     initialUpdateTitleEntryFeedbackState,
   );
+  const canEditFeedback = showRatingReview && Boolean(entryId);
 
   return (
     <div className="space-y-3">
@@ -73,43 +102,31 @@ export function AddTitleButtons({
         <input type="hidden" name="externalId" value={externalId} />
         <input type="hidden" name="mediaType" value={mediaType} />
 
-        {showRatingReview ? (
-          <div className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 sm:grid-cols-[140px_1fr]">
-            <label className="grid gap-1 text-sm font-medium text-zinc-700">
-              Rating
-              <select
-                name="rating"
-                defaultValue={initialRating ?? ""}
-                className="min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
-              >
-                <option value="">No rating</option>
-                {Array.from({ length: 10 }, (_, index) => index + 1).map(
-                  (rating) => (
-                    <option key={rating} value={rating}>
-                      {rating}/10
-                    </option>
-                  ),
-                )}
-              </select>
-            </label>
-            <label className="grid gap-1 text-sm font-medium text-zinc-700">
-              Short review
-              <textarea
-                name="review"
-                defaultValue={initialReview ?? ""}
-                maxLength={500}
-                rows={3}
-                placeholder="Add a short note about this title."
-                className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900"
-              />
-            </label>
-          </div>
+        {currentStatus ? (
+          <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700">
+            Saved status:{" "}
+            <span className="text-zinc-950">
+              {formatEntryStatus(currentStatus)}
+            </span>
+          </p>
         ) : null}
 
         <div className="flex flex-wrap gap-2">
-          <StatusButton label="Want to Watch" value={EntryStatus.PLAN_TO_WATCH} />
-          <StatusButton label="Watching" value={EntryStatus.WATCHING} />
-          <StatusButton label="Completed" value={EntryStatus.COMPLETED} />
+          <StatusButton
+            label="Want to Watch"
+            selected={currentStatus === EntryStatus.PLAN_TO_WATCH}
+            value={EntryStatus.PLAN_TO_WATCH}
+          />
+          <StatusButton
+            label="Watching"
+            selected={currentStatus === EntryStatus.WATCHING}
+            value={EntryStatus.WATCHING}
+          />
+          <StatusButton
+            label="Completed"
+            selected={currentStatus === EntryStatus.COMPLETED}
+            value={EntryStatus.COMPLETED}
+          />
         </div>
       </form>
 
@@ -126,7 +143,7 @@ export function AddTitleButtons({
         </p>
       ) : null}
 
-      {showRatingReview && entryId ? (
+      {canEditFeedback ? (
         <form
           action={feedbackFormAction}
           className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3"

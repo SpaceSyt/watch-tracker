@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
+import { EntryStatus } from "@/app/generated/prisma/enums";
 import { AddTitleButtons } from "@/components/add-title-buttons";
 import { PageShell } from "@/components/page-shell";
+import { prisma } from "@/lib/prisma";
+import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 import { getTmdbTitleDetails } from "@/lib/tmdb";
 
 type TitlePageProps = {
@@ -25,6 +29,44 @@ function parseMediaType(value: string) {
 
 function getYear(releaseDate: string | null) {
   return releaseDate ? releaseDate.slice(0, 4) : "Unknown year";
+}
+
+function canEditRatingReview(status: EntryStatus) {
+  return status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED;
+}
+
+async function getSavedTitleEntry(source: string, externalId: string) {
+  if (!hasSupabaseEnv()) {
+    return null;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
+  }
+
+  return prisma.userTitleEntry.findFirst({
+    where: {
+      user: {
+        authUserId: user.id,
+      },
+      title: {
+        externalSource: source,
+        externalId,
+      },
+    },
+    select: {
+      id: true,
+      status: true,
+      rating: true,
+      review: true,
+    },
+  });
 }
 
 export default async function TitlePage({ params }: TitlePageProps) {
@@ -58,6 +100,9 @@ export default async function TitlePage({ params }: TitlePageProps) {
   }
 
   const { title } = titleResult;
+  const savedEntry = await getSavedTitleEntry(source, title.externalId);
+  const showRatingReview =
+    savedEntry !== null && canEditRatingReview(savedEntry.status);
 
   return (
     <PageShell
@@ -121,8 +166,19 @@ export default async function TitlePage({ params }: TitlePageProps) {
                 source="tmdb"
                 externalId={title.externalId}
                 mediaType={title.mediaType}
+                entryId={savedEntry?.id}
+                currentStatus={savedEntry?.status}
+                initialRating={savedEntry?.rating}
+                initialReview={savedEntry?.review}
+                showRatingReview={showRatingReview}
               />
             </div>
+            {savedEntry?.status === EntryStatus.PLAN_TO_WATCH ? (
+              <p className="mt-3 text-sm text-zinc-500">
+                Ratings and reviews are available after moving this title to
+                Watching or Completed.
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

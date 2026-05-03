@@ -171,6 +171,16 @@ export async function addTitleToList(
     return { status: "error", message: "Invalid add-to-list request." };
   }
 
+  if (
+    status === EntryStatus.PLAN_TO_WATCH &&
+    (shouldUpdateRating || shouldUpdateReview)
+  ) {
+    return {
+      status: "error",
+      message: "Ratings and reviews are available for Watching or Completed titles.",
+    };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
