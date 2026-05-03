@@ -16,6 +16,11 @@ type UpdateUserTitleEntryFeedbackInput = {
   review: string | null;
 };
 
+type DeleteUserTitleEntryInput = {
+  entryId: string;
+  authUserId: string;
+};
+
 export async function createOrUpdateUserTitleEntry(
   input: UpsertUserTitleEntryInput,
 ) {
@@ -50,6 +55,33 @@ export async function createOrUpdateUserTitleEntry(
       status: input.status,
       rating: input.rating ?? null,
       review: input.review ?? null,
+    },
+  });
+}
+
+export async function deleteUserTitleEntry(input: DeleteUserTitleEntryInput) {
+  const entry = await prisma.userTitleEntry.findFirst({
+    where: {
+      id: input.entryId,
+      user: {
+        authUserId: input.authUserId,
+      },
+    },
+    include: {
+      title: true,
+    },
+  });
+
+  if (!entry) {
+    return null;
+  }
+
+  return prisma.userTitleEntry.delete({
+    where: {
+      id: entry.id,
+    },
+    include: {
+      title: true,
     },
   });
 }

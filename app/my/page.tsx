@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { EntryStatus } from "@/app/generated/prisma/enums";
+import { removeTitleFromList } from "@/app/title/actions";
 import { PageShell } from "@/components/page-shell";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
@@ -188,28 +189,68 @@ export default async function MyListPage() {
                           )}
                         </Link>
                         <div className="min-w-0 space-y-4">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Link
-                                href={`/title/${entry.title.externalSource}/${getMediaTypePath(entry.title.mediaType)}/${entry.title.externalId}`}
-                                className="font-semibold text-zinc-950 hover:underline"
-                              >
-                                {entry.title.title}
-                              </Link>
-                              <span className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700">
-                                {formatStatus(entry.status)}
-                              </span>
-                              <span className="text-sm text-zinc-500">
-                                {entry.title.mediaType} / {getYear(entry.title.releaseDate)}
-                              </span>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Link
+                                  href={`/title/${entry.title.externalSource}/${getMediaTypePath(entry.title.mediaType)}/${entry.title.externalId}`}
+                                  className="font-semibold text-zinc-950 hover:underline"
+                                >
+                                  {entry.title.title}
+                                </Link>
+                                <span className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700">
+                                  {formatStatus(entry.status)}
+                                </span>
+                                <span className="text-sm text-zinc-500">
+                                  {entry.title.mediaType} / {getYear(entry.title.releaseDate)}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-sm text-zinc-500">
+                                Updated {formatUpdatedAt(entry.updatedAt)}
+                              </p>
+                              <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">
+                                {entry.title.description ||
+                                  "No description available."}
+                              </p>
                             </div>
-                            <p className="mt-2 text-sm text-zinc-500">
-                              Updated {formatUpdatedAt(entry.updatedAt)}
-                            </p>
-                            <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-600">
-                              {entry.title.description ||
-                                "No description available."}
-                            </p>
+                            <details className="relative shrink-0 text-sm">
+                              <summary className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-md border border-zinc-300 bg-white font-semibold text-zinc-700 hover:bg-zinc-100">
+                                <span aria-hidden="true">…</span>
+                                <span className="sr-only">
+                                  Open actions for {entry.title.title}
+                                </span>
+                              </summary>
+                              <div className="absolute right-0 z-10 mt-2 w-56 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
+                                <p className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                                  Actions
+                                </p>
+                                <details className="border-t border-zinc-100">
+                                  <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+                                    Remove from my list
+                                  </summary>
+                                  <form
+                                    action={removeTitleFromList}
+                                    className="grid gap-2 px-3 pb-3"
+                                  >
+                                    <input
+                                      type="hidden"
+                                      name="entryId"
+                                      value={entry.id}
+                                    />
+                                    <p className="text-xs leading-5 text-zinc-500">
+                                      Removes your saved status, rating, and
+                                      review for this title.
+                                    </p>
+                                    <button
+                                      type="submit"
+                                      className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+                                    >
+                                      Confirm remove
+                                    </button>
+                                  </form>
+                                </details>
+                              </div>
+                            </details>
                           </div>
                           <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                             <p className="font-medium text-zinc-900">

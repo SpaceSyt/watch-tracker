@@ -11,6 +11,7 @@ import { findOrCreateTitle } from "@/lib/titles";
 import { getTmdbTitleDetails } from "@/lib/tmdb";
 import {
   createOrUpdateUserTitleEntry,
+  deleteUserTitleEntry,
   updateUserTitleEntryFeedback,
 } from "@/lib/user-title-entries";
 import { getOrCreateUserProfile } from "@/lib/user-profiles";
@@ -291,5 +292,44 @@ export async function updateTitleEntryFeedback(
         : "Failed to update this saved title.";
 
     return { status: "error", message };
+  }
+}
+
+export async function removeTitleFromList(formData: FormData): Promise<void> {
+  const entryId = formData.get("entryId");
+
+  if (typeof entryId !== "string" || !entryId.trim()) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return;
+  }
+
+  const entry = await deleteUserTitleEntry({
+    entryId: entryId.trim(),
+    authUserId: user.id,
+  });
+
+  revalidatePath("/my");
+
+  if (!entry) {
+    return;
+  }
+
+  const titlePath = getTitlePath(
+    entry.title.externalSource,
+    entry.title.mediaType,
+    entry.title.externalId,
+  );
+
+  if (titlePath) {
+    revalidatePath(titlePath);
   }
 }
