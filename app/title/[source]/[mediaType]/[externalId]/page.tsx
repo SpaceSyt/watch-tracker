@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { EntryStatus } from "@/app/generated/prisma/enums";
 import { AddTitleButtons } from "@/components/add-title-buttons";
+import { CustomListAssignmentForm } from "@/components/custom-list-assignment-form";
 import { EpisodeProgressForm } from "@/components/episode-progress-form";
 import { PageShell } from "@/components/page-shell";
+import { listCustomListsForUser } from "@/lib/custom-lists";
 import { prisma } from "@/lib/prisma";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -75,10 +77,16 @@ async function getSavedTitleEntry(
     },
     select: {
       id: true,
+      userId: true,
       status: true,
       rating: true,
       review: true,
       progressCurrent: true,
+      customListEntries: {
+        select: {
+          listId: true,
+        },
+      },
       title: {
         select: {
           totalEpisodes: true,
@@ -124,10 +132,16 @@ export default async function TitlePage({ params }: TitlePageProps) {
     title.externalId,
     parsedMediaType,
   );
+  const customLists = savedEntry
+    ? await listCustomListsForUser({ userId: savedEntry.userId })
+    : [];
+  const selectedCustomListIds =
+    savedEntry?.customListEntries.map((entry) => entry.listId) ?? [];
   const showRatingReview =
     savedEntry !== null && canEditRatingReview(savedEntry.status);
   const showEpisodeProgress =
-    savedEntry !== null && canEditEpisodeProgress(savedEntry.status, title.mediaType);
+    savedEntry !== null &&
+    canEditEpisodeProgress(savedEntry.status, title.mediaType);
   const savedTotalEpisodes = savedEntry?.title.totalEpisodes ?? null;
 
   return (
@@ -205,6 +219,23 @@ export default async function TitlePage({ params }: TitlePageProps) {
                   totalEpisodes={savedTotalEpisodes}
                 />
               ) : null}
+              {savedEntry ? (
+                <CustomListAssignmentForm
+                  entryId={savedEntry.id}
+                  source="tmdb"
+                  externalId={title.externalId}
+                  mediaType={title.mediaType}
+                  customLists={customLists.map((customList) => ({
+                    id: customList.id,
+                    name: customList.name,
+                  }))}
+                  selectedListIds={selectedCustomListIds}
+                />
+              ) : (
+                <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+                  Save this title before adding it to custom lists.
+                </p>
+              )}
             </div>
             {savedEntry?.status === EntryStatus.PLAN_TO_WATCH ? (
               <p className="mt-3 text-sm text-zinc-500">

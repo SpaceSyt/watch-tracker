@@ -4,9 +4,17 @@ import { revalidatePath } from "next/cache";
 import { EntryStatus, MediaType } from "@/app/generated/prisma/enums";
 import type {
   AddTitleEntryState,
+  CreateCustomListState,
   UpdateTitleEntryFeedbackState,
+  UpdateTitleEntryCustomListsState,
   UpdateTitleEntryProgressState,
 } from "@/app/title/action-state";
+import {
+  addEntryToCustomList,
+  createCustomList,
+  getCustomListAssignmentsForEntry,
+  replaceEntryCustomListAssignments,
+} from "@/lib/custom-lists";
 import { createClient } from "@/lib/supabase/server";
 import { findOrCreateTitle } from "@/lib/titles";
 import { getTmdbTitleDetails } from "@/lib/tmdb";
@@ -171,6 +179,34 @@ function parseReview(value: FormDataEntryValue | null): ParsedReview {
   }
 
   return review || null;
+}
+
+function getTitlePathFromFormData(formData: FormData) {
+  const source = formData.get("source");
+  const mediaType = formData.get("mediaType");
+  const externalId = formData.get("externalId");
+
+  if (
+    source !== "tmdb" ||
+    typeof mediaType !== "string" ||
+    !isMediaType(mediaType) ||
+    typeof externalId !== "string" ||
+    !externalId.trim()
+  ) {
+    return null;
+  }
+
+  return getTitlePath(source, MediaType[mediaType], externalId.trim());
+}
+
+function parseCustomListIds(formData: FormData) {
+  const listIds = formData.getAll("listId");
+
+  if (!listIds.every((listId): listId is string => typeof listId === "string")) {
+    return null;
+  }
+
+  return listIds;
 }
 
 export async function addTitleToList(
@@ -382,6 +418,127 @@ export async function updateTitleEntryProgress(
       writeError instanceof Error
         ? writeError.message
         : "Failed to update episode progress.";
+
+    return { status: "error", message };
+  }
+}
+
+export async function createCustomListForTitle(
+  _previousState: CreateCustomListState,
+  formData: FormData,
+): Promise<CreateCustomListState> {
+  const entryId = formData.get("entryId");
+  const name = formData.get("name");
+  const titlePath = getTitlePathFromFormData(formData);
+
+  if (
+    typeof entryId !== "string" ||
+    !entryId.trim() ||
+    typeof name !== "string" ||
+    !titlePath
+  ) {
+    return { status: "error", message: "Invalid custom list request." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return {
+      status: "error",
+      message: "Log in before creating a custom list.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+    await getCustomListAssignmentsForEntry({
+      userId: userProfile.id,
+      entryId: entryId.trim(),
+    });
+
+    const customList = await createCustomList({
+      userId: userProfile.id,
+      name,
+    });
+
+    await addEntryToCustomList({
+      userId: userProfile.id,
+      entryId: entryId.trim(),
+      listId: customList.id,
+    });
+
+    revalidatePath("/my");
+    revalidatePath(titlePath);
+
+    return {
+      status: "success",
+      message: `Created "${customList.name}" and added this title.`,
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to create this custom list.";
+
+    return { status: "error", message };
+  }
+}
+
+export async function updateTitleEntryCustomLists(
+  _previousState: UpdateTitleEntryCustomListsState,
+  formData: FormData,
+): Promise<UpdateTitleEntryCustomListsState> {
+  const entryId = formData.get("entryId");
+  const listIds = parseCustomListIds(formData);
+  const titlePath = getTitlePathFromFormData(formData);
+
+  if (
+    typeof entryId !== "string" ||
+    !entryId.trim() ||
+    listIds === null ||
+    !titlePath
+  ) {
+    return { status: "error", message: "Invalid custom list assignment." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return {
+      status: "error",
+      message: "Log in before updating custom lists.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+
+    await replaceEntryCustomListAssignments({
+      userId: userProfile.id,
+      entryId: entryId.trim(),
+      listIds,
+    });
+
+    revalidatePath("/my");
+    revalidatePath(titlePath);
+
+    return {
+      status: "success",
+      message: "Updated custom lists for this title.",
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to update custom lists.";
 
     return { status: "error", message };
   }

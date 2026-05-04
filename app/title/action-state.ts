@@ -29,3 +29,24 @@ export const initialUpdateTitleEntryProgressState: UpdateTitleEntryProgressState
     status: "idle",
     message: null,
   };
+
+export type CreateCustomListState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
+export const initialCreateCustomListState: CreateCustomListState = {
+  status: "idle",
+  message: null,
+};
+
+export type UpdateTitleEntryCustomListsState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
+export const initialUpdateTitleEntryCustomListsState: UpdateTitleEntryCustomListsState =
+  {
+    status: "idle",
+    message: null,
+  };
