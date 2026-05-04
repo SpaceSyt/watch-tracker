@@ -211,6 +211,21 @@ export default async function TitlePage({ params }: TitlePageProps) {
                 initialRating={savedEntry?.rating}
                 initialReview={savedEntry?.review}
                 showRatingReview={showRatingReview}
+                statusAction={
+                  savedEntry ? (
+                    <CustomListAssignmentForm
+                      entryId={savedEntry.id}
+                      source="tmdb"
+                      externalId={title.externalId}
+                      mediaType={title.mediaType}
+                      customLists={customLists.map((customList) => ({
+                        id: customList.id,
+                        name: customList.name,
+                      }))}
+                      selectedListIds={selectedCustomListIds}
+                    />
+                  ) : null
+                }
               />
               {showEpisodeProgress ? (
                 <EpisodeProgressForm
@@ -219,23 +234,11 @@ export default async function TitlePage({ params }: TitlePageProps) {
                   totalEpisodes={savedTotalEpisodes}
                 />
               ) : null}
-              {savedEntry ? (
-                <CustomListAssignmentForm
-                  entryId={savedEntry.id}
-                  source="tmdb"
-                  externalId={title.externalId}
-                  mediaType={title.mediaType}
-                  customLists={customLists.map((customList) => ({
-                    id: customList.id,
-                    name: customList.name,
-                  }))}
-                  selectedListIds={selectedCustomListIds}
-                />
-              ) : (
+              {!savedEntry ? (
                 <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
                   Save this title before adding it to custom lists.
                 </p>
-              )}
+              ) : null}
             </div>
             {savedEntry?.status === EntryStatus.PLAN_TO_WATCH ? (
               <p className="mt-3 text-sm text-zinc-500">

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import {
@@ -18,6 +19,7 @@ type AddTitleButtonsProps = {
   initialRating?: number | null;
   initialReview?: string | null;
   showRatingReview?: boolean;
+  statusAction?: ReactNode;
 };
 
 function formatEntryStatus(status: EntryStatus) {
@@ -84,6 +86,7 @@ export function AddTitleButtons({
   initialRating,
   initialReview,
   showRatingReview = false,
+  statusAction,
 }: AddTitleButtonsProps) {
   const [state, formAction] = useActionState(
     addTitleToList,
@@ -97,38 +100,41 @@ export function AddTitleButtons({
 
   return (
     <div className="space-y-3">
-      <form action={formAction} className="space-y-3">
-        <input type="hidden" name="source" value={source} />
-        <input type="hidden" name="externalId" value={externalId} />
-        <input type="hidden" name="mediaType" value={mediaType} />
+      {currentStatus ? (
+        <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700">
+          Saved status:{" "}
+          <span className="text-zinc-950">
+            {formatEntryStatus(currentStatus)}
+          </span>
+        </p>
+      ) : null}
 
-        {currentStatus ? (
-          <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700">
-            Saved status:{" "}
-            <span className="text-zinc-950">
-              {formatEntryStatus(currentStatus)}
-            </span>
-          </p>
-        ) : null}
+      <div className="flex flex-wrap items-start gap-2">
+        <form action={formAction}>
+          <input type="hidden" name="source" value={source} />
+          <input type="hidden" name="externalId" value={externalId} />
+          <input type="hidden" name="mediaType" value={mediaType} />
 
-        <div className="flex flex-wrap gap-2">
-          <StatusButton
-            label="Want to Watch"
-            selected={currentStatus === EntryStatus.PLAN_TO_WATCH}
-            value={EntryStatus.PLAN_TO_WATCH}
-          />
-          <StatusButton
-            label="Watching"
-            selected={currentStatus === EntryStatus.WATCHING}
-            value={EntryStatus.WATCHING}
-          />
-          <StatusButton
-            label="Completed"
-            selected={currentStatus === EntryStatus.COMPLETED}
-            value={EntryStatus.COMPLETED}
-          />
-        </div>
-      </form>
+          <div className="flex flex-wrap gap-2">
+            <StatusButton
+              label="Want to Watch"
+              selected={currentStatus === EntryStatus.PLAN_TO_WATCH}
+              value={EntryStatus.PLAN_TO_WATCH}
+            />
+            <StatusButton
+              label="Watching"
+              selected={currentStatus === EntryStatus.WATCHING}
+              value={EntryStatus.WATCHING}
+            />
+            <StatusButton
+              label="Completed"
+              selected={currentStatus === EntryStatus.COMPLETED}
+              value={EntryStatus.COMPLETED}
+            />
+          </div>
+        </form>
+        {statusAction}
+      </div>
 
       {state.message ? (
         <p
