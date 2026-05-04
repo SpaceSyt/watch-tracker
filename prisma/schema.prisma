@@ -20,13 +20,14 @@ enum MediaType {
 }
 
 model UserProfile {
-  id         String           @id @default(cuid())
-  authUserId String           @unique
-  username   String?          @unique
-  avatarUrl  String?
-  entries    UserTitleEntry[]
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  id          String           @id @default(cuid())
+  authUserId  String           @unique
+  username    String?          @unique
+  avatarUrl   String?
+  entries     UserTitleEntry[]
+  customLists CustomList[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([createdAt])
 }
@@ -54,23 +55,57 @@ model Title {
 }
 
 model UserTitleEntry {
-  id              String      @id @default(cuid())
-  userId          String
-  titleId         String
-  status          EntryStatus
-  rating          Int?
-  review          String?
-  progressCurrent Int?
-  rewatchCount    Int         @default(0)
-  startedAt       DateTime?
-  finishedAt      DateTime?
-  user            UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title           Title       @relation(fields: [titleId], references: [id], onDelete: Cascade)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                String            @id @default(cuid())
+  userId            String
+  titleId           String
+  status            EntryStatus
+  rating            Int?
+  review            String?
+  progressCurrent   Int?
+  rewatchCount      Int               @default(0)
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  user              UserProfile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             Title             @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  customListEntries CustomListEntry[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@unique([userId, titleId])
+  @@unique([userId, id])
   @@index([userId, status])
   @@index([userId, updatedAt])
   @@index([titleId])
+}
+
+// User-created custom collections only. System default collections are
+// virtual views derived from UserTitleEntry.status and are not stored here.
+model CustomList {
+  id             String            @id @default(cuid())
+  userId         String
+  name           String
+  normalizedName String
+  user           UserProfile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries        CustomListEntry[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([userId, normalizedName])
+  @@unique([userId, id])
+  @@index([userId, updatedAt])
+  @@index([createdAt])
+}
+
+model CustomListEntry {
+  id        String         @id @default(cuid())
+  userId    String
+  listId    String
+  entryId   String
+  list      CustomList     @relation(fields: [userId, listId], references: [userId, id], onDelete: Cascade)
+  entry     UserTitleEntry @relation(fields: [userId, entryId], references: [userId, id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@unique([listId, entryId])
+  @@unique([userId, listId, entryId])
+  @@index([userId, entryId])
 }
