@@ -56,7 +56,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themePreferenceScript }} />
         <div className="flex min-h-screen flex-col">
           <SiteHeader />
-          <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 py-10 sm:px-8">
+          <main className="mx-auto flex w-full max-w-[88rem] flex-1 flex-col px-6 py-10 sm:px-8">
             {children}
           </main>
         </div>

@@ -3,6 +3,7 @@ type PageShellProps = {
   title: string;
   description: string;
   children?: React.ReactNode;
+  wide?: boolean;
 };
 
 export function PageShell({
@@ -10,10 +11,15 @@ export function PageShell({
   title,
   description,
   children,
+  wide = false,
 }: PageShellProps) {
   return (
     <section className="flex flex-1 items-start">
-      <div className="w-full rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm sm:p-10">
+      <div
+        className={`w-full rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm sm:p-10 ${
+          wide ? "" : "mx-auto max-w-6xl"
+        }`}
+      >
         <p className="text-sm font-medium uppercase tracking-[0.18em] text-zinc-500">
           {eyebrow}
         </p>

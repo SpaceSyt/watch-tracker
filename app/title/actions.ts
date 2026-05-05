@@ -15,6 +15,7 @@ import {
   getCustomListAssignmentsForEntry,
   replaceEntryCustomListAssignments,
 } from "@/lib/custom-lists";
+import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { findOrCreateTitle } from "@/lib/titles";
 import { getTmdbTitleDetails } from "@/lib/tmdb";
@@ -207,6 +208,18 @@ function parseCustomListIds(formData: FormData) {
   }
 
   return listIds;
+}
+
+function parseEntryIds(formData: FormData) {
+  const entryIds = formData.getAll("entryId");
+
+  if (!entryIds.every((entryId): entryId is string => typeof entryId === "string")) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(entryIds.map((entryId) => entryId.trim()).filter(Boolean)),
+  );
 }
 
 export async function addTitleToList(
@@ -488,6 +501,52 @@ export async function createCustomListForTitle(
   }
 }
 
+export async function createCustomListFromMy(
+  _previousState: CreateCustomListState,
+  formData: FormData,
+): Promise<CreateCustomListState> {
+  const name = formData.get("name");
+
+  if (typeof name !== "string") {
+    return { status: "error", message: "Invalid custom list request." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return {
+      status: "error",
+      message: "Log in before creating a custom list.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+    const customList = await createCustomList({
+      userId: userProfile.id,
+      name,
+    });
+
+    revalidatePath("/my");
+
+    return {
+      status: "success",
+      message: `Created "${customList.name}".`,
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to create this custom list.";
+
+    return { status: "error", message };
+  }
+}
+
 export async function updateTitleEntryCustomLists(
   _previousState: UpdateTitleEntryCustomListsState,
   formData: FormData,
@@ -544,6 +603,18 @@ export async function updateTitleEntryCustomLists(
   }
 }
 
+export async function updateTitleEntryCustomListsFromMy(
+  formData: FormData,
+): Promise<void> {
+  await updateTitleEntryCustomLists(
+    {
+      status: "idle",
+      message: null,
+    },
+    formData,
+  );
+}
+
 export async function removeTitleFromList(formData: FormData): Promise<void> {
   const entryId = formData.get("entryId");
 
@@ -580,5 +651,72 @@ export async function removeTitleFromList(formData: FormData): Promise<void> {
 
   if (titlePath) {
     revalidatePath(titlePath);
+  }
+}
+
+export async function deleteSelectedTitlesFromList(
+  formData: FormData,
+): Promise<void> {
+  const entryIds = parseEntryIds(formData);
+
+  if (entryIds.length === 0) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return;
+  }
+
+  const userProfile = await getOrCreateUserProfile(user);
+  const entries = await prisma.userTitleEntry.findMany({
+    where: {
+      userId: userProfile.id,
+      id: {
+        in: entryIds,
+      },
+    },
+    select: {
+      id: true,
+      title: {
+        select: {
+          externalSource: true,
+          mediaType: true,
+          externalId: true,
+        },
+      },
+    },
+  });
+
+  if (entries.length === 0) {
+    return;
+  }
+
+  await prisma.userTitleEntry.deleteMany({
+    where: {
+      userId: userProfile.id,
+      id: {
+        in: entries.map((entry) => entry.id),
+      },
+    },
+  });
+
+  revalidatePath("/my");
+
+  for (const entry of entries) {
+    const titlePath = getTitlePath(
+      entry.title.externalSource,
+      entry.title.mediaType,
+      entry.title.externalId,
+    );
+
+    if (titlePath) {
+      revalidatePath(titlePath);
+    }
   }
 }
