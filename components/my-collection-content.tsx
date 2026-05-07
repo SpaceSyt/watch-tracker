@@ -21,22 +21,14 @@ type CollectionEntry = {
   review: string | null;
   progressCurrent: number | null;
   updatedAt: string;
-  title: {
-    externalSource: string;
-    externalId: string;
-    title: string;
-    posterUrl: string | null;
-    mediaType: string;
-    releaseDate: string | null;
-    totalEpisodes: number | null;
-  };
-  customListEntries: Array<{
-    listId: string;
-    list: {
-      id: string;
-      name: string;
-    };
-  }>;
+  titleName: string;
+  titlePosterUrl: string | null;
+  titleExternalSource: string;
+  titleExternalId: string;
+  titleMediaType: string;
+  titleReleaseDate: string | null;
+  titleTotalEpisodes: number | null;
+  customLists: CustomListOption[];
 };
 
 type MyCollectionContentProps = {
@@ -68,6 +60,10 @@ function canShowEpisodeProgress(status: EntryStatus, mediaType: string) {
     mediaType === "TV" &&
     (status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED)
   );
+}
+
+function canShowRatingReview(status: EntryStatus) {
+  return status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED;
 }
 
 function formatEpisodeProgress(
@@ -253,11 +249,12 @@ export function MyCollectionContent({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 min-[1380px]:grid-cols-4">
           {entries.map((entry) => {
-            const titleHref = `/title/${entry.title.externalSource}/${getMediaTypePath(entry.title.mediaType)}/${entry.title.externalId}`;
+            const titleHref = `/title/${entry.titleExternalSource}/${getMediaTypePath(entry.titleMediaType)}/${entry.titleExternalId}`;
             const selectedListIds = new Set(
-              entry.customListEntries.map((listEntry) => listEntry.listId),
+              entry.customLists.map((customList) => customList.id),
             );
             const isSelected = selectedEntryIdSet.has(entry.id);
+            const showRatingReview = canShowRatingReview(entry.status);
 
             return (
               <article
@@ -274,17 +271,17 @@ export function MyCollectionContent({
                       onChange={() => toggleEntry(entry.id)}
                       className="h-4 w-4 rounded border-zinc-300"
                     />
-                    <span className="sr-only">Select {entry.title.title}</span>
+                    <span className="sr-only">Select {entry.titleName}</span>
                   </label>
                 ) : null}
                 <Link
                   href={titleHref}
                   className="flex h-28 w-[72px] items-center justify-center overflow-hidden rounded-md bg-zinc-100 text-center text-xs font-medium text-zinc-400"
                 >
-                  {entry.title.posterUrl ? (
+                  {entry.titlePosterUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={entry.title.posterUrl}
+                      src={entry.titlePosterUrl}
                       alt=""
                       className="h-full w-full object-cover"
                     />
@@ -299,17 +296,17 @@ export function MyCollectionContent({
                         href={titleHref}
                         className="line-clamp-2 text-sm font-semibold leading-5 text-zinc-950 hover:underline"
                       >
-                        {entry.title.title}
+                        {entry.titleName}
                       </Link>
                       <p className="mt-1 text-xs text-zinc-500">
-                        {entry.title.mediaType} / {getYear(entry.title.releaseDate)}
+                        {entry.titleMediaType} / {getYear(entry.titleReleaseDate)}
                       </p>
                     </div>
                     <details className="relative shrink-0 text-sm">
                       <summary className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-md border border-zinc-300 bg-white font-semibold text-zinc-700 hover:bg-zinc-100">
                         <span aria-hidden="true">…</span>
                         <span className="sr-only">
-                          Open actions for {entry.title.title}
+                          Open actions for {entry.titleName}
                         </span>
                       </summary>
                       <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
@@ -328,17 +325,17 @@ export function MyCollectionContent({
                             <input
                               type="hidden"
                               name="source"
-                              value={entry.title.externalSource}
+                              value={entry.titleExternalSource}
                             />
                             <input
                               type="hidden"
                               name="externalId"
-                              value={entry.title.externalId}
+                              value={entry.titleExternalId}
                             />
                             <input
                               type="hidden"
                               name="mediaType"
-                              value={entry.title.mediaType}
+                              value={entry.titleMediaType}
                             />
                             {customLists.length === 0 ? (
                               <p className="text-xs leading-5 text-zinc-500">
@@ -405,12 +402,12 @@ export function MyCollectionContent({
                     <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700">
                       {formatStatus(entry.status)}
                     </span>
-                    {entry.customListEntries.slice(0, 2).map((listEntry) => (
+                    {entry.customLists.slice(0, 2).map((customList) => (
                       <span
-                        key={listEntry.listId}
+                        key={customList.id}
                         className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600"
                       >
-                        {listEntry.list.name}
+                        {customList.name}
                       </span>
                     ))}
                   </div>
@@ -418,20 +415,24 @@ export function MyCollectionContent({
                   <p className="mt-2 text-xs text-zinc-500">
                     Updated {formatUpdatedAt(entry.updatedAt)}
                   </p>
-                  <p className="mt-2 text-xs font-medium text-zinc-700">
-                    Rating: {entry.rating ? `${entry.rating}/10` : "Not rated"}
-                  </p>
-                  {entry.review ? (
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-600">
-                      {entry.review}
-                    </p>
+                  {showRatingReview ? (
+                    <>
+                      <p className="mt-2 text-xs font-medium text-zinc-700">
+                        Rating: {entry.rating ? `${entry.rating}/10` : "Not rated"}
+                      </p>
+                      {entry.review ? (
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-600">
+                          {entry.review}
+                        </p>
+                      ) : null}
+                    </>
                   ) : null}
                   <div className="mt-2">
                     <EpisodeProgressSummary
                       status={entry.status}
-                      mediaType={entry.title.mediaType}
+                      mediaType={entry.titleMediaType}
                       progressCurrent={entry.progressCurrent}
-                      totalEpisodes={entry.title.totalEpisodes}
+                      totalEpisodes={entry.titleTotalEpisodes}
                     />
                   </div>
                 </div>

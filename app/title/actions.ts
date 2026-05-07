@@ -18,7 +18,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { findOrCreateTitle } from "@/lib/titles";
-import { getTmdbTitleDetails } from "@/lib/tmdb";
+import { getTmdbTitleDetails, isValidTmdbExternalId } from "@/lib/tmdb";
 import {
   createOrUpdateUserTitleEntry,
   deleteUserTitleEntry,
@@ -31,6 +31,8 @@ const maxReviewLength = 500;
 const minRating = 1;
 const maxRating = 10;
 const maxProgressCurrent = 2_147_483_647;
+const maxBatchDeleteEntryIds = 50;
+const maxEntryIdLength = 64;
 
 function parseEntryRating(value: FormDataEntryValue | null) {
   if (value === null || value === "") {
@@ -113,7 +115,8 @@ function getTitlePath(
 ) {
   if (
     source !== "tmdb" ||
-    (mediaType !== MediaType.MOVIE && mediaType !== MediaType.TV)
+    (mediaType !== MediaType.MOVIE && mediaType !== MediaType.TV) ||
+    !isValidTmdbExternalId(externalId)
   ) {
     return null;
   }
@@ -192,7 +195,7 @@ function getTitlePathFromFormData(formData: FormData) {
     typeof mediaType !== "string" ||
     !isMediaType(mediaType) ||
     typeof externalId !== "string" ||
-    !externalId.trim()
+    !isValidTmdbExternalId(externalId.trim())
   ) {
     return null;
   }
@@ -210,16 +213,42 @@ function parseCustomListIds(formData: FormData) {
   return listIds;
 }
 
+function isValidEntryId(value: string) {
+  return (
+    value.length > 0 &&
+    value.length <= maxEntryIdLength &&
+    /^[A-Za-z0-9_-]+$/.test(value)
+  );
+}
+
 function parseEntryIds(formData: FormData) {
   const entryIds = formData.getAll("entryId");
 
-  if (!entryIds.every((entryId): entryId is string => typeof entryId === "string")) {
-    return [];
+  if (entryIds.length === 0) {
+    return [] as string[];
   }
 
-  return Array.from(
-    new Set(entryIds.map((entryId) => entryId.trim()).filter(Boolean)),
-  );
+  if (entryIds.length > maxBatchDeleteEntryIds) {
+    return null;
+  }
+
+  const parsedIds: string[] = [];
+
+  for (const entryId of entryIds) {
+    if (typeof entryId !== "string") {
+      return null;
+    }
+
+    const trimmedEntryId = entryId.trim();
+
+    if (!isValidEntryId(trimmedEntryId)) {
+      return null;
+    }
+
+    parsedIds.push(trimmedEntryId);
+  }
+
+  return Array.from(new Set(parsedIds));
 }
 
 export async function addTitleToList(
@@ -234,6 +263,7 @@ export async function addTitleToList(
   const shouldUpdateReview = formData.has("review");
   const rating = shouldUpdateRating ? parseRating(formData.get("rating")) : null;
   const review = shouldUpdateReview ? parseReview(formData.get("review")) : null;
+  const trimmedExternalId = typeof externalId === "string" ? externalId.trim() : "";
 
   if (source !== "tmdb") {
     return { status: "error", message: "Unsupported title source." };
@@ -241,7 +271,7 @@ export async function addTitleToList(
 
   if (
     typeof externalId !== "string" ||
-    !externalId.trim() ||
+    !isValidTmdbExternalId(trimmedExternalId) ||
     typeof mediaType !== "string" ||
     !isMediaType(mediaType) ||
     typeof status !== "string" ||
@@ -276,7 +306,7 @@ export async function addTitleToList(
   }
 
   try {
-    const tmdbTitle = await getTmdbTitleDetails(mediaType, externalId);
+    const tmdbTitle = await getTmdbTitleDetails(mediaType, trimmedExternalId);
     const userProfile = await getOrCreateUserProfile(user);
     const title = await findOrCreateTitle({
       ...tmdbTitle,
@@ -292,7 +322,7 @@ export async function addTitleToList(
     });
 
     revalidatePath("/my");
-    revalidatePath(`/title/${source}/${mediaType.toLowerCase()}/${externalId}`);
+    revalidatePath(`/title/${source}/${mediaType.toLowerCase()}/${trimmedExternalId}`);
 
     return {
       status: "success",
@@ -659,7 +689,7 @@ export async function deleteSelectedTitlesFromList(
 ): Promise<void> {
   const entryIds = parseEntryIds(formData);
 
-  if (entryIds.length === 0) {
+  if (entryIds === null || entryIds.length === 0) {
     return;
   }
 

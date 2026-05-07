@@ -62,6 +62,17 @@ export type NormalizedTmdbTitleDetails = Omit<
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
+export const maxTmdbSearchQueryLength = 100;
+export const maxTmdbExternalIdLength = 20;
+
+const tmdbExternalIdPattern = new RegExp(
+  `^\\d{1,${maxTmdbExternalIdLength}}$`,
+);
+
+export function isValidTmdbExternalId(value: string) {
+  return tmdbExternalIdPattern.test(value);
+}
+
 function getTmdbConfig() {
   const accessToken = process.env.TMDB_ACCESS_TOKEN?.trim() || null;
   const apiKey = process.env.TMDB_API_KEY?.trim() || null;
@@ -164,6 +175,12 @@ export async function searchTmdbTitles(query: string) {
     return [];
   }
 
+  if (trimmedQuery.length > maxTmdbSearchQueryLength) {
+    throw new Error(
+      `Search query must be ${maxTmdbSearchQueryLength} characters or fewer.`,
+    );
+  }
+
   const searchParams = new URLSearchParams({
     query: trimmedQuery,
     include_adult: "false",
@@ -183,6 +200,10 @@ export async function getTmdbTitleDetails(
   mediaType: "MOVIE" | "TV",
   externalId: string,
 ): Promise<NormalizedTmdbTitleDetails> {
+  if (!isValidTmdbExternalId(externalId)) {
+    throw new Error("Invalid TMDB title id.");
+  }
+
   if (mediaType === "MOVIE") {
     const movie = await fetchTmdbJson<TmdbMovieDetails>(`/movie/${externalId}`);
     const title = movie.title?.trim();

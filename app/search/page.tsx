@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
-import { searchTmdbTitles } from "@/lib/tmdb";
+import { maxTmdbSearchQueryLength, searchTmdbTitles } from "@/lib/tmdb";
 
 type SearchPageProps = {
   searchParams: Promise<{
@@ -26,7 +26,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   let results: Awaited<ReturnType<typeof searchTmdbTitles>> = [];
   let errorMessage: string | null = null;
 
-  if (query) {
+  if (query.length > maxTmdbSearchQueryLength) {
+    errorMessage = `Search query must be ${maxTmdbSearchQueryLength} characters or fewer.`;
+  } else if (query) {
     try {
       results = await searchTmdbTitles(query);
     } catch (error) {
@@ -55,6 +57,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             name="q"
             defaultValue={query}
             placeholder="Search movies or TV..."
+            maxLength={maxTmdbSearchQueryLength}
             className="min-h-11 min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-4 py-2 text-base text-zinc-900 outline-none focus:border-zinc-600"
           />
           <button

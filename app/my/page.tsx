@@ -85,32 +85,104 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
     where: {
       authUserId: user.id,
     },
-    include: {
-      customLists: {
-        orderBy: [
-          {
-            createdAt: "asc",
+    select: {
+      id: true,
+    },
+  });
+
+  const [customLists, statusCounts] = userProfile
+    ? await Promise.all([
+        prisma.customList.findMany({
+          where: {
+            userId: userProfile.id,
           },
-          {
-            name: "asc",
-          },
-        ],
-        include: {
-          _count: {
-            select: {
-              entries: true,
+          orderBy: [
+            {
+              createdAt: "asc",
+            },
+            {
+              name: "asc",
+            },
+          ],
+          select: {
+            id: true,
+            name: true,
+            _count: {
+              select: {
+                entries: true,
+              },
             },
           },
-        },
-      },
-      entries: {
+        }),
+        prisma.userTitleEntry.groupBy({
+          by: ["status"],
+          where: {
+            userId: userProfile.id,
+          },
+          _count: {
+            _all: true,
+          },
+        }),
+      ])
+    : [[], []];
+
+  const entryCountByStatus = new Map(
+    statusCounts.map((count) => [count.status, count._count._all]),
+  );
+  const selectedCustomList = customLists.find((customList) => customList.id === list);
+  const defaultSystemCollection =
+    systemCollections.find(
+      (collection) => collection.key === defaultSystemCollectionKey,
+    ) ?? systemCollections[0];
+  const selectedSystemCollection =
+    selectedCustomList === undefined
+      ? systemCollections.find((collection) => collection.key === view) ??
+        defaultSystemCollection
+      : null;
+  const selectedSystemStatus =
+    selectedSystemCollection?.status ?? defaultSystemCollection.status;
+  const selectedEntries = userProfile
+    ? await prisma.userTitleEntry.findMany({
+        where: selectedCustomList
+          ? {
+              userId: userProfile.id,
+              customListEntries: {
+                some: {
+                  userId: userProfile.id,
+                  listId: selectedCustomList.id,
+                },
+              },
+            }
+          : {
+              userId: userProfile.id,
+              status: selectedSystemStatus,
+            },
         orderBy: {
           updatedAt: "desc",
         },
-        include: {
-          title: true,
+        select: {
+          id: true,
+          status: true,
+          rating: true,
+          review: true,
+          progressCurrent: true,
+          updatedAt: true,
+          title: {
+            select: {
+              externalSource: true,
+              externalId: true,
+              title: true,
+              posterUrl: true,
+              mediaType: true,
+              releaseDate: true,
+              totalEpisodes: true,
+            },
+          },
           customListEntries: {
-            include: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
               list: {
                 select: {
                   id: true,
@@ -120,42 +192,44 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
             },
           },
         },
-      },
-    },
-  });
-  const entries = userProfile?.entries ?? [];
-  const customLists = userProfile?.customLists ?? [];
-  const selectedCustomList = customLists.find((customList) => customList.id === list);
-  const selectedSystemCollection =
-    selectedCustomList === undefined
-      ? systemCollections.find((collection) => collection.key === view) ??
-        systemCollections.find(
-          (collection) => collection.key === defaultSystemCollectionKey,
-        ) ??
-        systemCollections[0]
-      : null;
-  const selectedEntries = selectedCustomList
-    ? entries.filter((entry) =>
-        entry.customListEntries.some(
-          (listEntry) => listEntry.listId === selectedCustomList.id,
-        ),
-      )
-    : entries.filter((entry) => entry.status === selectedSystemCollection?.status);
+      })
+    : [];
   const selectedTitle = selectedCustomList
     ? selectedCustomList.name
-    : selectedSystemCollection?.label ??
-      systemCollections.find(
-        (collection) => collection.key === defaultSystemCollectionKey,
-      )?.label ??
-      systemCollections[0].label;
-  const serializedSelectedEntries = selectedEntries.map((entry) => ({
-    ...entry,
-    updatedAt: entry.updatedAt.toISOString(),
-    title: {
-      ...entry.title,
-      releaseDate: entry.title.releaseDate?.toISOString() ?? null,
-    },
-  }));
+    : selectedSystemCollection?.label ?? defaultSystemCollection.label;
+  const totalEntryCount = systemCollections.reduce(
+    (total, collection) => total + (entryCountByStatus.get(collection.status) ?? 0),
+    0,
+  );
+  const serializedSelectedEntries = selectedEntries.map((entry) => {
+    const canShowRatingReview =
+      entry.status === EntryStatus.WATCHING ||
+      entry.status === EntryStatus.COMPLETED;
+    const canShowEpisodeProgress =
+      entry.title.mediaType === "TV" && canShowRatingReview;
+
+    return {
+      id: entry.id,
+      status: entry.status,
+      rating: canShowRatingReview ? entry.rating : null,
+      review: canShowRatingReview ? entry.review : null,
+      progressCurrent: canShowEpisodeProgress ? entry.progressCurrent : null,
+      updatedAt: entry.updatedAt.toISOString(),
+      titleName: entry.title.title,
+      titlePosterUrl: entry.title.posterUrl,
+      titleExternalSource: entry.title.externalSource,
+      titleExternalId: entry.title.externalId,
+      titleMediaType: entry.title.mediaType,
+      titleReleaseDate: entry.title.releaseDate?.toISOString() ?? null,
+      titleTotalEpisodes: canShowEpisodeProgress
+        ? entry.title.totalEpisodes
+        : null,
+      customLists: entry.customListEntries.map((listEntry) => ({
+        id: listEntry.list.id,
+        name: listEntry.list.name,
+      })),
+    };
+  });
 
   return (
     <PageShell
@@ -191,9 +265,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
               <nav className="grid gap-2" aria-label="System collections">
                 {systemCollections.map((collection) => {
                   const selected = selectedSystemCollection?.key === collection.key;
-                  const count = entries.filter(
-                    (entry) => entry.status === collection.status,
-                  ).length;
+                  const count = entryCountByStatus.get(collection.status) ?? 0;
 
                   return (
                     <Link
@@ -261,12 +333,12 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
               name: customList.name,
             }))}
             emptyTitle={
-              entries.length === 0
+              totalEntryCount === 0
                 ? "Your list is empty"
                 : "No titles in this collection"
             }
             emptyDescription={
-              entries.length === 0
+              totalEntryCount === 0
                 ? "Search for a movie or TV title, open its detail page, and choose a watch status to start building your list."
                 : "Add or assign saved titles from their title detail pages."
             }

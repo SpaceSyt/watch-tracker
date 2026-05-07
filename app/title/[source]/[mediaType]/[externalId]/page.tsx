@@ -8,7 +8,7 @@ import { listCustomListsForUser } from "@/lib/custom-lists";
 import { prisma } from "@/lib/prisma";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
-import { getTmdbTitleDetails } from "@/lib/tmdb";
+import { getTmdbTitleDetails, isValidTmdbExternalId } from "@/lib/tmdb";
 
 type TitlePageProps = {
   params: Promise<{
@@ -100,7 +100,11 @@ export default async function TitlePage({ params }: TitlePageProps) {
   const { source, mediaType, externalId } = await params;
   const parsedMediaType = parseMediaType(mediaType);
 
-  if (source !== "tmdb" || !parsedMediaType) {
+  if (
+    source !== "tmdb" ||
+    !parsedMediaType ||
+    !isValidTmdbExternalId(externalId)
+  ) {
     notFound();
   }
 
