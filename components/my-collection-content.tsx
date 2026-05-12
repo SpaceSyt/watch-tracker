@@ -8,7 +8,9 @@ import {
   copySelectedTitlesToCustomList,
   deleteSelectedTitlesFromList,
   moveSelectedTitlesToCustomList,
+  removeSelectedTitlesFromCustomList,
   removeTitleFromList,
+  removeTitleFromCustomList,
   updateTitleEntryCustomListsFromMy,
 } from "@/app/title/actions";
 
@@ -140,7 +142,7 @@ function EmptyCollection({
       </p>
       <Link
         href="/search"
-        className="mt-5 inline-flex rounded-md border border-zinc-300 bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
+        className="mt-5 inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
       >
         Search titles
       </Link>
@@ -260,7 +262,7 @@ function BatchListModal({
           <button
             type="submit"
             disabled={!canSubmit}
-            className="rounded-md border border-zinc-900 bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
           >
             Confirm
           </button>
@@ -274,16 +276,25 @@ function CardActionMenu({
   entry,
   titleHref,
   customLists,
+  currentCustomListId,
 }: {
   entry: CollectionEntry;
   titleHref: string;
   customLists: CustomListOption[];
+  currentCustomListId: string | null;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const selectedListIds = new Set(
     entry.customLists.map((customList) => customList.id),
   );
+  const isCustomListView = Boolean(currentCustomListId);
+  const removeLabel = isCustomListView
+    ? "Remove from this list"
+    : "Remove from my list";
+  const removeDescription = isCustomListView
+    ? "Removes this title from the current custom list only. Your saved status, rating, review, progress, and other list memberships are kept."
+    : "Removes your saved status, rating, review, and custom-list assignments for this title.";
 
   useEffect(() => {
     if (!isOpen) {
@@ -397,19 +408,28 @@ function CardActionMenu({
           </details>
           <details className="border-t border-zinc-100">
             <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
-              Remove from my list
+              {removeLabel}
             </summary>
-            <form action={removeTitleFromList} className="grid gap-2 px-3 pb-3">
+            <form
+              action={
+                isCustomListView ? removeTitleFromCustomList : removeTitleFromList
+              }
+              className="grid gap-2 px-3 pb-3"
+            >
               <input type="hidden" name="entryId" value={entry.id} />
-              <p className="text-xs leading-5 text-zinc-500">
-                Removes your saved status, rating, review, and custom-list
-                assignments for this title.
-              </p>
+              {currentCustomListId ? (
+                <input
+                  type="hidden"
+                  name="sourceListId"
+                  value={currentCustomListId}
+                />
+              ) : null}
+              <p className="text-xs leading-5 text-zinc-500">{removeDescription}</p>
               <button
                 type="submit"
                 className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
               >
-                Confirm remove
+                {removeLabel}
               </button>
             </form>
           </details>
@@ -449,6 +469,12 @@ export function MyCollectionContent({
   const moveTargetLists = currentCustomListId
     ? customLists.filter((customList) => customList.id !== currentCustomListId)
     : [];
+  const batchRemoveAction = currentCustomListId
+    ? removeSelectedTitlesFromCustomList
+    : deleteSelectedTitlesFromList;
+  const batchRemoveLabel = currentCustomListId
+    ? "Remove selected from this list"
+    : "Delete selected";
 
   function toggleEntry(entryId: string) {
     setSelectedEntryIds((current) =>
@@ -493,16 +519,23 @@ export function MyCollectionContent({
                   {selectedEntryIds.length} selected
                 </span>
                 <form
-                  action={deleteSelectedTitlesFromList}
+                  action={batchRemoveAction}
                   className="flex items-center"
                 >
                   <SelectedEntryIdInputs entryIds={selectedEntryIds} />
+                  {currentCustomListId ? (
+                    <input
+                      type="hidden"
+                      name="sourceListId"
+                      value={currentCustomListId}
+                    />
+                  ) : null}
                   <button
                     type="submit"
                     disabled={selectedEntryIds.length === 0}
                     className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
                   >
-                    Delete selected
+                    {batchRemoveLabel}
                   </button>
                 </form>
                 <button
@@ -653,6 +686,7 @@ export function MyCollectionContent({
                       entry={entry}
                       titleHref={titleHref}
                       customLists={customLists}
+                      currentCustomListId={currentCustomListId}
                     />
                   </div>
 

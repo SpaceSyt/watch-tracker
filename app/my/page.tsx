@@ -41,14 +41,14 @@ const defaultSystemCollectionKey = "watching";
 function collectionLinkClass(selected: boolean) {
   return `flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm transition-colors ${
     selected
-      ? "border-zinc-900 bg-zinc-900 text-white"
+      ? "border-zinc-400 bg-white text-zinc-950 shadow-sm"
       : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
   }`;
 }
 
 function countBadgeClass(selected: boolean) {
   return `rounded px-1.5 py-0.5 text-xs ${
-    selected ? "bg-white/15 text-white" : "bg-zinc-100 text-zinc-600"
+    selected ? "bg-zinc-100 text-zinc-700" : "bg-zinc-100 text-zinc-600"
   }`;
 }
 
@@ -304,7 +304,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
                           <span
                             aria-hidden="true"
                             className={`opacity-0 transition-opacity group-hover:opacity-100 ${
-                              selected ? "text-white/70" : "text-zinc-400"
+                              selected ? "text-zinc-500" : "text-zinc-400"
                             }`}
                           >
                             ≡
@@ -319,7 +319,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
                             aria-hidden="true"
                             title="More list actions coming soon"
                             className={`opacity-0 transition-opacity group-hover:opacity-100 ${
-                              selected ? "text-white/70" : "text-zinc-400"
+                              selected ? "text-zinc-500" : "text-zinc-400"
                             }`}
                           >
                             …

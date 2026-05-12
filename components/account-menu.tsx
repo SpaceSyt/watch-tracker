@@ -9,8 +9,8 @@ type AccountMenuProps = {
   userEmail: string | null;
 };
 
-function getAvatarLabel(userEmail: string | null) {
-  return userEmail?.trim().charAt(0).toUpperCase() || "?";
+function getAvatarLabel() {
+  return "A";
 }
 
 export function AccountMenu({ userEmail }: AccountMenuProps) {
@@ -73,13 +73,13 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-zinc-200 px-2 py-1 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+        className="flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-zinc-200 bg-white px-2 py-1 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Open account menu"
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-xs font-semibold text-white">
-          {getAvatarLabel(userEmail)}
+        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-300 bg-white text-xs font-semibold text-zinc-800">
+          {getAvatarLabel()}
         </span>
       </button>
       {isOpen ? (

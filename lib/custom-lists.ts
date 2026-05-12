@@ -43,6 +43,12 @@ type BatchMoveCustomListEntriesInput = BatchCustomListEntriesInput & {
   sourceListId: string;
 };
 
+type BatchRemoveCustomListEntriesInput = {
+  userId: string;
+  entryIds: string[];
+  sourceListId: string;
+};
+
 type ReplaceEntryCustomListsInput = EntryCustomListInput & {
   listIds: string[];
 };
@@ -292,6 +298,42 @@ export async function batchMoveEntriesBetweenCustomLists(
 
     return {
       count: ownedEntries.length,
+    };
+  });
+}
+
+export async function batchRemoveEntriesFromCustomList(
+  input: BatchRemoveCustomListEntriesInput,
+) {
+  const entryIds = getUniqueIds(input.entryIds);
+
+  if (entryIds.length === 0) {
+    throw new Error("Select at least one saved title.");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const ownedEntries = await assertOwnedEntries(tx, {
+      userId: input.userId,
+      entryIds,
+    });
+
+    await assertOwnedLists(tx, {
+      userId: input.userId,
+      listIds: [input.sourceListId],
+    });
+
+    const result = await tx.customListEntry.deleteMany({
+      where: {
+        userId: input.userId,
+        listId: input.sourceListId,
+        entryId: {
+          in: ownedEntries.map((entry) => entry.id),
+        },
+      },
+    });
+
+    return {
+      count: result.count,
     };
   });
 }

@@ -14,6 +14,7 @@ import {
   addEntryToCustomList,
   batchAddEntriesToCustomList,
   batchMoveEntriesBetweenCustomLists,
+  batchRemoveEntriesFromCustomList,
   createCustomList,
   getCustomListAssignmentsForEntry,
   replaceEntryCustomListAssignments,
@@ -697,6 +698,45 @@ export async function removeTitleFromList(formData: FormData): Promise<void> {
   }
 }
 
+export async function removeTitleFromCustomList(
+  formData: FormData,
+): Promise<void> {
+  const entryId = formData.get("entryId");
+  const sourceListId = parseBatchCustomListId(formData.get("sourceListId"));
+
+  if (typeof entryId !== "string" || !isValidEntryId(entryId.trim())) {
+    return;
+  }
+
+  if (!sourceListId) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return;
+  }
+
+  const userProfile = await getOrCreateUserProfile(user);
+
+  try {
+    await batchRemoveEntriesFromCustomList({
+      userId: userProfile.id,
+      entryIds: [entryId.trim()],
+      sourceListId,
+    });
+  } catch {
+    return;
+  }
+
+  revalidatePath("/my");
+}
+
 export async function copySelectedTitlesToCustomList(
   _previousState: BatchCustomListActionState,
   formData: FormData,
@@ -826,6 +866,41 @@ export async function moveSelectedTitlesToCustomList(
 
     return { status: "error", message };
   }
+}
+
+export async function removeSelectedTitlesFromCustomList(
+  formData: FormData,
+): Promise<void> {
+  const entryIds = parseEntryIds(formData);
+  const sourceListId = parseBatchCustomListId(formData.get("sourceListId"));
+
+  if (entryIds === null || entryIds.length === 0 || !sourceListId) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return;
+  }
+
+  const userProfile = await getOrCreateUserProfile(user);
+
+  try {
+    await batchRemoveEntriesFromCustomList({
+      userId: userProfile.id,
+      entryIds,
+      sourceListId,
+    });
+  } catch {
+    return;
+  }
+
+  revalidatePath("/my");
 }
 
 export async function deleteSelectedTitlesFromList(
