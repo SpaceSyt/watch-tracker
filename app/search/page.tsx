@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
-import { maxTmdbSearchQueryLength, searchTmdbTitles } from "@/lib/tmdb";
+import {
+  maxTmdbSearchPage,
+  maxTmdbSearchQueryLength,
+  searchTmdbTitles,
+} from "@/lib/tmdb";
 
 type SearchPageProps = {
   searchParams: Promise<{
+    page?: string;
     q?: string;
   }>;
 };
@@ -20,22 +25,62 @@ function getMediaTypeLabel(mediaType: "MOVIE" | "TV") {
   return mediaType === "MOVIE" ? "Movie" : "TV";
 }
 
+function parseSearchPage(value: string | undefined) {
+  if (!value) {
+    return 1;
+  }
+
+  const page = Number(value);
+
+  if (!Number.isInteger(page) || page < 1) {
+    return 1;
+  }
+
+  return Math.min(page, maxTmdbSearchPage);
+}
+
+function getSearchPageHref(query: string, page: number) {
+  const params = new URLSearchParams({
+    q: query,
+  });
+
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+
+  return `/search?${params.toString()}`;
+}
+
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q } = await searchParams;
+  const { page, q } = await searchParams;
   const query = q?.trim() ?? "";
-  let results: Awaited<ReturnType<typeof searchTmdbTitles>> = [];
+  const requestedPage = parseSearchPage(page);
+  let searchResult: Awaited<ReturnType<typeof searchTmdbTitles>> = {
+    results: [],
+    page: requestedPage,
+    totalPages: 0,
+    totalResults: 0,
+  };
   let errorMessage: string | null = null;
 
   if (query.length > maxTmdbSearchQueryLength) {
     errorMessage = `Search query must be ${maxTmdbSearchQueryLength} characters or fewer.`;
   } else if (query) {
     try {
-      results = await searchTmdbTitles(query);
+      searchResult = await searchTmdbTitles(query, requestedPage);
     } catch (error) {
       errorMessage =
         error instanceof Error ? error.message : "Unable to search TMDB.";
     }
   }
+
+  const results = searchResult.results;
+  const hasPreviousPage = Boolean(
+    query && !errorMessage && searchResult.page > 1,
+  );
+  const hasNextPage = Boolean(
+    query && !errorMessage && searchResult.page < searchResult.totalPages,
+  );
 
   return (
     <PageShell
@@ -89,7 +134,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               <h2 className="text-sm font-medium text-zinc-600">
                 Results for <span className="text-zinc-950">{query}</span>
               </h2>
-              <span className="text-sm text-zinc-500">{results.length} found</span>
+              <span className="text-sm text-zinc-500">
+                {searchResult.totalResults} found
+                {searchResult.totalPages > 1
+                  ? ` · Page ${searchResult.page} of ${searchResult.totalPages}`
+                  : ""}
+              </span>
             </div>
 
             {results.length === 0 ? (
@@ -139,6 +189,32 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 </Link>
               ))
             )}
+
+            {hasPreviousPage || hasNextPage ? (
+              <nav
+                aria-label="Search result pages"
+                className="flex items-center justify-between gap-3 border-t border-zinc-200 pt-4"
+              >
+                {hasPreviousPage ? (
+                  <Link
+                    href={getSearchPageHref(query, searchResult.page - 1)}
+                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                  >
+                    Previous
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                {hasNextPage ? (
+                  <Link
+                    href={getSearchPageHref(query, searchResult.page + 1)}
+                    className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                  >
+                    Next
+                  </Link>
+                ) : null}
+              </nav>
+            ) : null}
           </div>
         ) : null}
       </div>

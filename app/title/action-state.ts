@@ -50,3 +50,13 @@ export const initialUpdateTitleEntryCustomListsState: UpdateTitleEntryCustomList
     status: "idle",
     message: null,
   };
+
+export type BatchCustomListActionState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
+export const initialBatchCustomListActionState: BatchCustomListActionState = {
+  status: "idle",
+  message: null,
+};

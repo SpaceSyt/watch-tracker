@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { EntryStatus, MediaType } from "@/app/generated/prisma/enums";
 import type {
   AddTitleEntryState,
+  BatchCustomListActionState,
   CreateCustomListState,
   UpdateTitleEntryFeedbackState,
   UpdateTitleEntryCustomListsState,
@@ -11,6 +12,8 @@ import type {
 } from "@/app/title/action-state";
 import {
   addEntryToCustomList,
+  batchAddEntriesToCustomList,
+  batchMoveEntriesBetweenCustomLists,
   createCustomList,
   getCustomListAssignmentsForEntry,
   replaceEntryCustomListAssignments,
@@ -249,6 +252,16 @@ function parseEntryIds(formData: FormData) {
   }
 
   return Array.from(new Set(parsedIds));
+}
+
+function parseBatchCustomListId(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  return isValidEntryId(trimmedValue) ? trimmedValue : null;
 }
 
 export async function addTitleToList(
@@ -681,6 +694,137 @@ export async function removeTitleFromList(formData: FormData): Promise<void> {
 
   if (titlePath) {
     revalidatePath(titlePath);
+  }
+}
+
+export async function copySelectedTitlesToCustomList(
+  _previousState: BatchCustomListActionState,
+  formData: FormData,
+): Promise<BatchCustomListActionState> {
+  const entryIds = parseEntryIds(formData);
+  const targetListId = parseBatchCustomListId(formData.get("targetListId"));
+
+  if (entryIds === null) {
+    return {
+      status: "error",
+      message: `Select ${maxBatchDeleteEntryIds} saved titles or fewer.`,
+    };
+  }
+
+  if (entryIds.length === 0) {
+    return { status: "error", message: "Select at least one saved title." };
+  }
+
+  if (!targetListId) {
+    return { status: "error", message: "Choose a custom list to copy to." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return {
+      status: "error",
+      message: "Log in before updating custom lists.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+    const result = await batchAddEntriesToCustomList({
+      userId: userProfile.id,
+      entryIds,
+      targetListId,
+    });
+
+    revalidatePath("/my");
+
+    return {
+      status: "success",
+      message: `Copied ${result.count} selected title${
+        result.count === 1 ? "" : "s"
+      } to the custom list.`,
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to copy selected titles.";
+
+    return { status: "error", message };
+  }
+}
+
+export async function moveSelectedTitlesToCustomList(
+  _previousState: BatchCustomListActionState,
+  formData: FormData,
+): Promise<BatchCustomListActionState> {
+  const entryIds = parseEntryIds(formData);
+  const sourceListId = parseBatchCustomListId(formData.get("sourceListId"));
+  const targetListId = parseBatchCustomListId(formData.get("targetListId"));
+
+  if (entryIds === null) {
+    return {
+      status: "error",
+      message: `Select ${maxBatchDeleteEntryIds} saved titles or fewer.`,
+    };
+  }
+
+  if (entryIds.length === 0) {
+    return { status: "error", message: "Select at least one saved title." };
+  }
+
+  if (!sourceListId) {
+    return {
+      status: "error",
+      message: "Move to list is available from a custom-list view.",
+    };
+  }
+
+  if (!targetListId) {
+    return { status: "error", message: "Choose a custom list to move to." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return {
+      status: "error",
+      message: "Log in before updating custom lists.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+    const result = await batchMoveEntriesBetweenCustomLists({
+      userId: userProfile.id,
+      entryIds,
+      sourceListId,
+      targetListId,
+    });
+
+    revalidatePath("/my");
+
+    return {
+      status: "success",
+      message: `Moved ${result.count} selected title${
+        result.count === 1 ? "" : "s"
+      } to the custom list.`,
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to move selected titles.";
+
+    return { status: "error", message };
   }
 }
 

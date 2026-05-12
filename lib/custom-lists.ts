@@ -33,6 +33,16 @@ type AddEntryToCustomListInput = EntryCustomListInput & {
   listId: string;
 };
 
+type BatchCustomListEntriesInput = {
+  userId: string;
+  entryIds: string[];
+  targetListId: string;
+};
+
+type BatchMoveCustomListEntriesInput = BatchCustomListEntriesInput & {
+  sourceListId: string;
+};
+
 type ReplaceEntryCustomListsInput = EntryCustomListInput & {
   listIds: string[];
 };
@@ -187,6 +197,105 @@ export async function removeEntryFromCustomList(
   });
 }
 
+export async function batchAddEntriesToCustomList(
+  input: BatchCustomListEntriesInput,
+) {
+  const entryIds = getUniqueIds(input.entryIds);
+
+  if (entryIds.length === 0) {
+    throw new Error("Select at least one saved title.");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const ownedEntries = await assertOwnedEntries(tx, {
+      userId: input.userId,
+      entryIds,
+    });
+
+    await assertOwnedLists(tx, {
+      userId: input.userId,
+      listIds: [input.targetListId],
+    });
+
+    await tx.customListEntry.createMany({
+      data: ownedEntries.map((entry) => ({
+        userId: input.userId,
+        listId: input.targetListId,
+        entryId: entry.id,
+      })),
+      skipDuplicates: true,
+    });
+
+    return {
+      count: ownedEntries.length,
+    };
+  });
+}
+
+export async function batchMoveEntriesBetweenCustomLists(
+  input: BatchMoveCustomListEntriesInput,
+) {
+  const entryIds = getUniqueIds(input.entryIds);
+
+  if (entryIds.length === 0) {
+    throw new Error("Select at least one saved title.");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const ownedEntries = await assertOwnedEntries(tx, {
+      userId: input.userId,
+      entryIds,
+    });
+
+    await assertOwnedLists(tx, {
+      userId: input.userId,
+      listIds: Array.from(new Set([input.sourceListId, input.targetListId])),
+    });
+
+    const sourceAssignments = await tx.customListEntry.findMany({
+      where: {
+        userId: input.userId,
+        listId: input.sourceListId,
+        entryId: {
+          in: ownedEntries.map((entry) => entry.id),
+        },
+      },
+      select: {
+        entryId: true,
+      },
+    });
+
+    if (sourceAssignments.length !== ownedEntries.length) {
+      throw new Error("One or more saved titles are not in the source list.");
+    }
+
+    await tx.customListEntry.createMany({
+      data: ownedEntries.map((entry) => ({
+        userId: input.userId,
+        listId: input.targetListId,
+        entryId: entry.id,
+      })),
+      skipDuplicates: true,
+    });
+
+    if (input.sourceListId !== input.targetListId) {
+      await tx.customListEntry.deleteMany({
+        where: {
+          userId: input.userId,
+          listId: input.sourceListId,
+          entryId: {
+            in: ownedEntries.map((entry) => entry.id),
+          },
+        },
+      });
+    }
+
+    return {
+      count: ownedEntries.length,
+    };
+  });
+}
+
 export async function replaceEntryCustomListAssignments(
   input: ReplaceEntryCustomListsInput,
 ) {
@@ -265,6 +374,32 @@ async function assertOwnedEntry(
   if (!entry) {
     throw new Error("Saved title entry not found.");
   }
+}
+
+async function assertOwnedEntries(
+  tx: Prisma.TransactionClient,
+  input: {
+    userId: string;
+    entryIds: string[];
+  },
+) {
+  const entries = await tx.userTitleEntry.findMany({
+    where: {
+      userId: input.userId,
+      id: {
+        in: input.entryIds,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (entries.length !== input.entryIds.length) {
+    throw new Error("One or more saved titles were not found.");
+  }
+
+  return entries;
 }
 
 async function assertOwnedLists(

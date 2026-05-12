@@ -298,11 +298,32 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
                       <Link
                         key={customList.id}
                         href={`/my?list=${encodeURIComponent(customList.id)}`}
-                        className={collectionLinkClass(selected)}
+                        className={`${collectionLinkClass(selected)} group`}
                       >
-                        <span className="truncate">{customList.name}</span>
-                        <span className={countBadgeClass(selected)}>
-                          {customList._count.entries}
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className={`opacity-0 transition-opacity group-hover:opacity-100 ${
+                              selected ? "text-white/70" : "text-zinc-400"
+                            }`}
+                          >
+                            ≡
+                          </span>
+                          <span className="truncate">{customList.name}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-1">
+                          <span className={countBadgeClass(selected)}>
+                            {customList._count.entries}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            title="More list actions coming soon"
+                            className={`opacity-0 transition-opacity group-hover:opacity-100 ${
+                              selected ? "text-white/70" : "text-zinc-400"
+                            }`}
+                          >
+                            …
+                          </span>
                         </span>
                       </Link>
                     );
@@ -332,6 +353,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
               id: customList.id,
               name: customList.name,
             }))}
+            currentCustomListId={selectedCustomList?.id ?? null}
             emptyTitle={
               totalEntryCount === 0
                 ? "Your list is empty"

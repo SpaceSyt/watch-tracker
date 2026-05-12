@@ -15,7 +15,10 @@ type TmdbSearchResult = {
 };
 
 type TmdbSearchResponse = {
+  page?: number;
   results?: TmdbSearchResult[];
+  total_pages?: number;
+  total_results?: number;
 };
 
 type TmdbMovieDetails = {
@@ -64,6 +67,7 @@ const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
 export const maxTmdbSearchQueryLength = 100;
 export const maxTmdbExternalIdLength = 20;
+export const maxTmdbSearchPage = 500;
 
 const tmdbExternalIdPattern = new RegExp(
   `^\\d{1,${maxTmdbExternalIdLength}}$`,
@@ -71,6 +75,14 @@ const tmdbExternalIdPattern = new RegExp(
 
 export function isValidTmdbExternalId(value: string) {
   return tmdbExternalIdPattern.test(value);
+}
+
+function normalizeSearchPage(page: number) {
+  if (!Number.isInteger(page) || page < 1) {
+    return 1;
+  }
+
+  return Math.min(page, maxTmdbSearchPage);
 }
 
 function getTmdbConfig() {
@@ -168,11 +180,27 @@ function normalizeTmdbTitle(result: TmdbSearchResult): NormalizedTmdbTitle | nul
   return null;
 }
 
-export async function searchTmdbTitles(query: string) {
+export type NormalizedTmdbSearchPage = {
+  results: NormalizedTmdbTitle[];
+  page: number;
+  totalPages: number;
+  totalResults: number;
+};
+
+export async function searchTmdbTitles(
+  query: string,
+  page = 1,
+): Promise<NormalizedTmdbSearchPage> {
   const trimmedQuery = query.trim();
+  const searchPage = normalizeSearchPage(page);
 
   if (!trimmedQuery) {
-    return [];
+    return {
+      results: [],
+      page: 1,
+      totalPages: 0,
+      totalResults: 0,
+    };
   }
 
   if (trimmedQuery.length > maxTmdbSearchQueryLength) {
@@ -185,15 +213,23 @@ export async function searchTmdbTitles(query: string) {
     query: trimmedQuery,
     include_adult: "false",
     language: "en-US",
+    page: String(searchPage),
   });
   const data = await fetchTmdbJson<TmdbSearchResponse>(
     "/search/multi",
     searchParams,
   );
 
-  return (data.results ?? [])
+  const results = (data.results ?? [])
     .map(normalizeTmdbTitle)
     .filter((title): title is NormalizedTmdbTitle => Boolean(title));
+
+  return {
+    results,
+    page: normalizeSearchPage(data.page ?? searchPage),
+    totalPages: Math.min(data.total_pages ?? 0, maxTmdbSearchPage),
+    totalResults: data.total_results ?? results.length,
+  };
 }
 
 export async function getTmdbTitleDetails(
