@@ -95,7 +95,7 @@ Optional but recommended:
 Clone the repository:
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/SpaceSyt/watch-tracker
 cd watch-tracker
 ```
 
