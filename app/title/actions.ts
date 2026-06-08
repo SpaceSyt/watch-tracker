@@ -24,6 +24,7 @@ import {
   replaceEntryCustomListAssignments,
 } from "@/lib/custom-lists";
 import { prisma } from "@/lib/prisma";
+import { applyServerRateLimit } from "@/lib/rate-limit";
 import { getAuthenticatedUser } from "@/lib/supabase/auth";
 import { findOrCreateTitle } from "@/lib/titles";
 import { getTmdbTitleDetails, isValidTmdbExternalId } from "@/lib/tmdb";
@@ -319,6 +320,8 @@ export async function addTitleToList(
     };
   }
 
+  await applyServerRateLimit(user.id);
+
   try {
     const tmdbTitle = await getTmdbTitleDetails(mediaType, trimmedExternalId);
     const userProfile = await getOrCreateUserProfile(user);
@@ -381,6 +384,8 @@ export async function updateTitleEntryFeedback(
     };
   }
 
+  await applyServerRateLimit(user.id);
+
   try {
     const userProfile = await getOrCreateUserProfile(user);
     const entry = await updateUserTitleEntryFeedback({
@@ -438,6 +443,8 @@ export async function updateTitleEntryProgress(
       message: "Log in before updating episode progress.",
     };
   }
+
+  await applyServerRateLimit(user.id);
 
   try {
     const userProfile = await getOrCreateUserProfile(user);
@@ -498,6 +505,8 @@ export async function createCustomListForTitle(
     };
   }
 
+  await applyServerRateLimit(user.id);
+
   try {
     const userProfile = await getOrCreateUserProfile(user);
     await getCustomListAssignmentsForEntry({
@@ -552,6 +561,8 @@ export async function createCustomListFromMy(
     };
   }
 
+  await applyServerRateLimit(user.id);
+
   try {
     const userProfile = await getOrCreateUserProfile(user);
     const customList = await createCustomList({
@@ -595,6 +606,8 @@ export async function renameCustomListFromMy(
     };
   }
 
+  await applyServerRateLimit(user.id);
+
   try {
     const userProfile = await getOrCreateUserProfile(user);
     const customList = await renameCustomList({
@@ -632,6 +645,8 @@ export async function deleteCustomListFromMy(formData: FormData): Promise<void> 
   if (!user) {
     return;
   }
+
+  await applyServerRateLimit(user.id);
 
   const userProfile = await getOrCreateUserProfile(user);
 
@@ -676,6 +691,8 @@ export async function updateTitleEntryCustomLists(
       message: "Log in before updating custom lists.",
     };
   }
+
+  await applyServerRateLimit(user.id);
 
   try {
     const userProfile = await getOrCreateUserProfile(user);
@@ -728,6 +745,8 @@ export async function removeTitleFromList(formData: FormData): Promise<void> {
     return;
   }
 
+  await applyServerRateLimit(user.id);
+
   const entry = await deleteUserTitleEntry({
     entryId: entryId.trim(),
     authUserId: user.id,
@@ -769,6 +788,8 @@ export async function removeTitleFromCustomList(
   if (!user) {
     return;
   }
+
+  await applyServerRateLimit(user.id);
 
   const userProfile = await getOrCreateUserProfile(user);
 
@@ -815,6 +836,8 @@ export async function copySelectedTitlesToCustomList(
       message: "Log in before updating custom lists.",
     };
   }
+
+  await applyServerRateLimit(user.id);
 
   try {
     const userProfile = await getOrCreateUserProfile(user);
@@ -881,6 +904,8 @@ export async function moveSelectedTitlesToCustomList(
     };
   }
 
+  await applyServerRateLimit(user.id);
+
   try {
     const userProfile = await getOrCreateUserProfile(user);
     const result = await batchMoveEntriesBetweenCustomLists({
@@ -938,6 +963,8 @@ export async function moveSelectedTitlesToStatus(
       message: "Log in before updating saved titles.",
     };
   }
+
+  await applyServerRateLimit(user.id);
 
   try {
     const userProfile = await getOrCreateUserProfile(user);
@@ -1029,6 +1056,8 @@ export async function removeSelectedTitlesFromCustomList(
     return;
   }
 
+  await applyServerRateLimit(user.id);
+
   const userProfile = await getOrCreateUserProfile(user);
 
   try {
@@ -1058,6 +1087,8 @@ export async function deleteSelectedTitlesFromList(
   if (!user) {
     return;
   }
+
+  await applyServerRateLimit(user.id);
 
   const userProfile = await getOrCreateUserProfile(user);
   const entries = await prisma.userTitleEntry.findMany({
