@@ -5,24 +5,46 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/language-preference";
 import { createClient } from "@/lib/supabase/client";
-import type { LanguagePreference } from "@/lib/i18n";
-
-type AccountMenuProps = {
-  userEmail: string | null;
-  initialLanguage?: LanguagePreference;
-};
+import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 function getAvatarLabel() {
   return "A";
 }
 
-export function AccountMenu({ userEmail, initialLanguage = "en" }: AccountMenuProps) {
+export function AccountMenu() {
   const router = useRouter();
-  const dictionary = useI18n(initialLanguage);
+  const dictionary = useI18n();
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const isLoggedIn = Boolean(userEmail);
+
+  useEffect(() => {
+    if (!hasSupabaseEnv()) {
+      return;
+    }
+
+    const supabase = createClient();
+    let active = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (active) {
+        setUserEmail(data.session?.user.email ?? null);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user.email ?? null);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -63,6 +85,7 @@ export function AccountMenu({ userEmail, initialLanguage = "en" }: AccountMenuPr
 
       router.replace("/");
       router.refresh();
+      setUserEmail(null);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : dictionary.common.externalError;

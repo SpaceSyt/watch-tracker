@@ -20,7 +20,7 @@ import {
   replaceEntryCustomListAssignments,
 } from "@/lib/custom-lists";
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/supabase/auth";
 import { findOrCreateTitle } from "@/lib/titles";
 import { getTmdbTitleDetails, isValidTmdbExternalId } from "@/lib/tmdb";
 import {
@@ -306,13 +306,9 @@ export async function addTitleToList(
     };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before adding this title to your list.",
@@ -372,13 +368,9 @@ export async function updateTitleEntryFeedback(
     return { status: "error", message: review.message };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before updating this saved title.",
@@ -434,13 +426,9 @@ export async function updateTitleEntryProgress(
     return { status: "error", message: progressCurrent.message };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before updating episode progress.",
@@ -497,13 +485,9 @@ export async function createCustomListForTitle(
     return { status: "error", message: "Invalid custom list request." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before creating a custom list.",
@@ -555,13 +539,9 @@ export async function createCustomListFromMy(
     return { status: "error", message: "Invalid custom list request." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before creating a custom list.",
@@ -608,13 +588,9 @@ export async function updateTitleEntryCustomLists(
     return { status: "error", message: "Invalid custom list assignment." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before updating custom lists.",
@@ -666,13 +642,9 @@ export async function removeTitleFromList(formData: FormData): Promise<void> {
     return;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return;
   }
 
@@ -712,13 +684,9 @@ export async function removeTitleFromCustomList(
     return;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return;
   }
 
@@ -759,13 +727,9 @@ export async function copySelectedTitlesToCustomList(
     return { status: "error", message: "Choose a custom list to copy to." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before updating custom lists.",
@@ -828,13 +792,9 @@ export async function moveSelectedTitlesToCustomList(
     return { status: "error", message: "Choose a custom list to move to." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return {
       status: "error",
       message: "Log in before updating custom lists.",
@@ -878,13 +838,9 @@ export async function removeSelectedTitlesFromCustomList(
     return;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return;
   }
 
@@ -912,13 +868,9 @@ export async function deleteSelectedTitlesFromList(
     return;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return;
   }
 

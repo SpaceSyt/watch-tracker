@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { EntryStatus } from "@/app/generated/prisma/enums";
@@ -13,30 +14,11 @@ import {
   removeTitleFromCustomList,
   updateTitleEntryCustomListsFromMy,
 } from "@/app/title/actions";
+import { EmptyCollection } from "@/components/empty-collection";
+import { EpisodeProgressSummary } from "@/components/episode-progress-summary";
 import { useI18n, useLanguagePreference } from "@/components/language-preference";
 import { formatEntryStatus } from "@/lib/i18n";
-
-type CustomListOption = {
-  id: string;
-  name: string;
-};
-
-type CollectionEntry = {
-  id: string;
-  status: EntryStatus;
-  rating: number | null;
-  review: string | null;
-  progressCurrent: number | null;
-  updatedAt: string;
-  titleName: string;
-  titlePosterUrl: string | null;
-  titleExternalSource: string;
-  titleExternalId: string;
-  titleMediaType: string;
-  titleReleaseDate: string | null;
-  titleTotalEpisodes: number | null;
-  customLists: CustomListOption[];
-};
+import type { CollectionEntry, CustomListOption } from "@/types/collection";
 
 type MyCollectionContentProps = {
   selectedTitle: string;
@@ -63,96 +45,8 @@ function formatUpdatedAt(value: string, language: "en" | "zh") {
   }).format(new Date(value));
 }
 
-function canShowEpisodeProgress(status: EntryStatus, mediaType: string) {
-  return (
-    mediaType === "TV" &&
-    (status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED)
-  );
-}
-
 function canShowRatingReview(status: EntryStatus) {
   return status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED;
-}
-
-function formatEpisodeProgress(
-  progressCurrent: number | null,
-  totalEpisodes: number | null,
-  notStarted: string,
-  episodes: string,
-) {
-  const hasKnownTotal = totalEpisodes !== null && totalEpisodes > 0;
-
-  if (progressCurrent === null) {
-    return hasKnownTotal ? `${notStarted} / ${totalEpisodes} ${episodes}` : null;
-  }
-
-  if (!hasKnownTotal) {
-    return progressCurrent === 0 ? notStarted : `${progressCurrent} ${episodes}`;
-  }
-
-  return progressCurrent === 0
-    ? `${notStarted} / ${totalEpisodes} ${episodes}`
-    : `${progressCurrent} / ${totalEpisodes} ${episodes}`;
-}
-
-function EpisodeProgressSummary({
-  status,
-  mediaType,
-  progressCurrent,
-  totalEpisodes,
-}: {
-  status: EntryStatus;
-  mediaType: string;
-  progressCurrent: number | null;
-  totalEpisodes: number | null;
-}) {
-  const dictionary = useI18n();
-
-  if (!canShowEpisodeProgress(status, mediaType)) {
-    return null;
-  }
-
-  const progress = formatEpisodeProgress(
-    progressCurrent,
-    totalEpisodes,
-    dictionary.collectionContent.notStarted,
-    dictionary.collectionContent.episodes,
-  );
-
-  if (!progress) {
-    return null;
-  }
-
-  return (
-    <p className="text-xs font-medium text-zinc-700">
-      {dictionary.collectionContent.progress}: {progress}
-    </p>
-  );
-}
-
-function EmptyCollection({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  const dictionary = useI18n();
-
-  return (
-    <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-8 text-center">
-      <h2 className="text-base font-semibold text-zinc-950">{title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-600">
-        {description}
-      </p>
-      <Link
-        href="/search"
-        className="mt-5 inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
-      >
-        {dictionary.collectionContent.searchTitles}
-      </Link>
-    </div>
-  );
 }
 
 function SelectedEntryIdInputs({ entryIds }: { entryIds: string[] }) {
@@ -676,10 +570,12 @@ export function MyCollectionContent({
                   className="flex h-28 w-[72px] items-center justify-center overflow-hidden rounded-md bg-zinc-100 text-center text-xs font-medium text-zinc-400"
                 >
                   {entry.titlePosterUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={entry.titlePosterUrl}
                       alt=""
+                      width={72}
+                      height={112}
+                      sizes="72px"
                       className="h-full w-full object-cover"
                     />
                   ) : (

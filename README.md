@@ -16,6 +16,7 @@ This project currently includes:
 
 * Next.js App Router setup
 * TypeScript + Tailwind CSS
+* English and Simplified Chinese interface preferences
 * Supabase Auth (email/password)
 * Login / signup flows with in-app logout action
 * SSR-friendly session handling
@@ -28,6 +29,8 @@ This project currently includes:
 * User-created custom lists with per-title assignment
 * Batch copy, move, and removal actions for custom lists
 * Prisma models and migrations for profiles, titles, entries, and custom lists
+* Optimized TMDB image delivery through `next/image`
+* Short-lived search caching and longer-lived title detail caching
 
 Not implemented yet:
 
@@ -83,6 +86,20 @@ If the list is empty, `/my` links back to `/search` so users can add their first
 * Prisma
 * PostgreSQL (via Supabase)
 * TMDB API
+
+---
+
+## Project Structure
+
+* `app/` - routes, layouts, and server actions
+* `components/` - reusable interface components and focused client boundaries
+* `lib/` - Supabase, Prisma, TMDB, localization, and data-access helpers
+* `prisma/` - database schema and migrations
+* `types/` - shared application types
+* `docs/` - manual smoke-test guidance
+
+Generated Prisma client files, Next.js build output, local environment files,
+and installed dependencies are intentionally excluded from Git.
 
 ---
 
@@ -190,7 +207,10 @@ npx tsc --noEmit --incremental false
 
 * Prisma 7 uses `prisma.config.ts` for database config
 * Use Session pooler if direct connection fails
-* Search and title detail pages call TMDB at request time and surface TMDB configuration or request errors in the UI
+* TMDB search responses are cached briefly; title details use a longer cache
+* TMDB configuration and request errors are surfaced in the UI
+* The account menu loads browser auth state independently; protected routes and
+  all write operations still validate the user on the server
 
 ---
 
@@ -206,6 +226,8 @@ npx tsc --noEmit --incremental false
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, validation, and pull request
 expectations.
+
+The initial internationalization foundation was contributed by **Saonian07**.
 
 ## Security
 

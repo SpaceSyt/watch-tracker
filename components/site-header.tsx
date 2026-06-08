@@ -1,27 +1,30 @@
-import Link from "next/link";
-import { AccountMenu } from "@/components/account-menu";
-import { SettingsMenu } from "@/components/settings-menu";
-import { getLanguagePreference, getServerDictionary } from "@/lib/i18n-server";
-import { createClient } from "@/lib/supabase/server";
-import { hasSupabaseEnv } from "@/lib/supabase/env";
+"use client";
 
-export async function SiteHeader() {
-  const language = await getLanguagePreference();
-  const dictionary = await getServerDictionary();
-  let userEmail: string | null = null;
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useI18n } from "@/components/language-preference";
+import { SettingsMenu } from "@/components/settings-menu";
+
+const AccountMenu = dynamic(
+  () =>
+    import("@/components/account-menu").then((module) => module.AccountMenu),
+  {
+    ssr: false,
+    loading: () => (
+      <span
+        aria-hidden="true"
+        className="h-10 w-10 rounded-full border border-zinc-200 bg-white"
+      />
+    ),
+  },
+);
+
+export function SiteHeader() {
+  const dictionary = useI18n();
   const navItems = [
     { href: "/", label: dictionary.common.home },
     { href: "/search", label: dictionary.common.search },
   ];
-
-  if (hasSupabaseEnv()) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    userEmail = user?.email ?? null;
-  }
 
   return (
     <header className="border-b border-zinc-200 bg-white">
@@ -48,16 +51,14 @@ export async function SiteHeader() {
                 {item.label}
               </Link>
             ))}
-            {userEmail ? (
-              <Link
-                href="/my"
-                className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-              >
-                {dictionary.common.myList}
-              </Link>
-            ) : null}
-            <SettingsMenu initialLanguage={language} />
-            <AccountMenu userEmail={userEmail} initialLanguage={language} />
+            <Link
+              href="/my"
+              className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+            >
+              {dictionary.common.myList}
+            </Link>
+            <SettingsMenu />
+            <AccountMenu />
           </nav>
         </div>
       </div>

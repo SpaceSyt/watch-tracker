@@ -6,7 +6,7 @@ import { MyCollectionContent } from "@/components/my-collection-content";
 import { PageShell } from "@/components/page-shell";
 import { getServerDictionary } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/supabase/auth";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 type MyListPageProps = {
@@ -66,19 +66,9 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
   }
 
   const { view, list } = await searchParams;
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getClaims();
+  const user = await getAuthenticatedUser();
 
-  if (error || !data?.claims) {
-    redirect("/auth/login");
-  }
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
+  if (!user) {
     redirect("/auth/login");
   }
 

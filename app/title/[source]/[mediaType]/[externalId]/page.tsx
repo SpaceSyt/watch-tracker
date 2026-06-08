@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { EntryStatus } from "@/app/generated/prisma/enums";
 import { AddTitleButtons } from "@/components/add-title-buttons";
@@ -7,8 +8,8 @@ import { PageShell } from "@/components/page-shell";
 import { listCustomListsForUser } from "@/lib/custom-lists";
 import { getServerDictionary } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedUser } from "@/lib/supabase/auth";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
 import { getTmdbTitleDetails, isValidTmdbExternalId } from "@/lib/tmdb";
 
 type TitlePageProps = {
@@ -55,13 +56,9 @@ async function getSavedTitleEntry(
     return null;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const user = await getAuthenticatedUser();
 
-  if (error || !user) {
+  if (!user) {
     return null;
   }
 
@@ -110,13 +107,16 @@ export default async function TitlePage({ params }: TitlePageProps) {
     notFound();
   }
 
-  const titleResult = await getTmdbTitleDetails(parsedMediaType, externalId)
-    .then((title) => ({ title, error: null }))
-    .catch((error: unknown) => ({
-      title: null,
-      error:
-        error instanceof Error ? error.message : dictionary.titlePage.unable,
-    }));
+  const [titleResult, savedEntry] = await Promise.all([
+    getTmdbTitleDetails(parsedMediaType, externalId)
+      .then((title) => ({ title, error: null }))
+      .catch((error: unknown) => ({
+        title: null,
+        error:
+          error instanceof Error ? error.message : dictionary.titlePage.unable,
+      })),
+    getSavedTitleEntry(source, externalId, parsedMediaType),
+  ]);
 
   if (titleResult.error || !titleResult.title) {
     return (
@@ -133,11 +133,6 @@ export default async function TitlePage({ params }: TitlePageProps) {
   }
 
   const { title } = titleResult;
-  const savedEntry = await getSavedTitleEntry(
-    source,
-    title.externalId,
-    parsedMediaType,
-  );
   const customLists = savedEntry
     ? await listCustomListsForUser({ userId: savedEntry.userId })
     : [];
@@ -161,10 +156,12 @@ export default async function TitlePage({ params }: TitlePageProps) {
       <div className="grid gap-7 md:grid-cols-[220px_1fr]">
         <div className="flex h-[330px] w-[220px] items-center justify-center overflow-hidden rounded-md bg-zinc-100 text-sm font-medium text-zinc-400">
           {title.posterUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={title.posterUrl}
               alt=""
+              width={220}
+              height={330}
+              sizes="220px"
               className="h-full w-full object-cover"
             />
           ) : (

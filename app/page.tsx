@@ -1,9 +1,11 @@
-import Link from "next/link";
-import { PageShell } from "@/components/page-shell";
-import { getServerDictionary } from "@/lib/i18n-server";
+"use client";
 
-export default async function Home() {
-  const dictionary = await getServerDictionary();
+import Link from "next/link";
+import { useI18n } from "@/components/language-preference";
+import { PageShell } from "@/components/page-shell";
+
+export default function Home() {
+  const dictionary = useI18n();
 
   return (
     <PageShell

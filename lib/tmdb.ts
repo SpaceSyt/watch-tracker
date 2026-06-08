@@ -64,6 +64,8 @@ export type NormalizedTmdbTitleDetails = Omit<
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+const TMDB_SEARCH_REVALIDATE_SECONDS = 5 * 60;
+const TMDB_DETAILS_REVALIDATE_SECONDS = 60 * 60;
 
 export const maxTmdbSearchQueryLength = 100;
 export const maxTmdbExternalIdLength = 20;
@@ -102,7 +104,11 @@ function buildImageUrl(path: string | null | undefined) {
   return path ? `${TMDB_IMAGE_BASE_URL}${path}` : null;
 }
 
-async function fetchTmdbJson<T>(path: string, searchParams?: URLSearchParams) {
+async function fetchTmdbJson<T>(
+  path: string,
+  searchParams: URLSearchParams | undefined,
+  revalidate: number,
+) {
   const { accessToken, apiKey } = getTmdbConfig();
   const url = new URL(`${TMDB_BASE_URL}${path}`);
 
@@ -124,7 +130,9 @@ async function fetchTmdbJson<T>(path: string, searchParams?: URLSearchParams) {
 
   const response = await fetch(url, {
     headers,
-    cache: "no-store",
+    next: {
+      revalidate,
+    },
   });
 
   if (!response.ok) {
@@ -218,6 +226,7 @@ export async function searchTmdbTitles(
   const data = await fetchTmdbJson<TmdbSearchResponse>(
     "/search/multi",
     searchParams,
+    TMDB_SEARCH_REVALIDATE_SECONDS,
   );
 
   const results = (data.results ?? [])
@@ -241,7 +250,11 @@ export async function getTmdbTitleDetails(
   }
 
   if (mediaType === "MOVIE") {
-    const movie = await fetchTmdbJson<TmdbMovieDetails>(`/movie/${externalId}`);
+    const movie = await fetchTmdbJson<TmdbMovieDetails>(
+      `/movie/${externalId}`,
+      undefined,
+      TMDB_DETAILS_REVALIDATE_SECONDS,
+    );
     const title = movie.title?.trim();
 
     if (!title) {
@@ -262,7 +275,11 @@ export async function getTmdbTitleDetails(
     };
   }
 
-  const tv = await fetchTmdbJson<TmdbTvDetails>(`/tv/${externalId}`);
+  const tv = await fetchTmdbJson<TmdbTvDetails>(
+    `/tv/${externalId}`,
+    undefined,
+    TMDB_DETAILS_REVALIDATE_SECONDS,
+  );
   const title = tv.name?.trim();
 
   if (!title) {

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
 import { getServerDictionary } from "@/lib/i18n-server";
@@ -163,10 +164,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 >
                   <div className="flex h-36 w-24 items-center justify-center overflow-hidden rounded-md bg-zinc-100 text-center text-xs font-medium text-zinc-400">
                     {result.posterUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={result.posterUrl}
                         alt=""
+                        width={96}
+                        height={144}
+                        sizes="96px"
                         className="h-full w-full object-cover"
                       />
                     ) : (
