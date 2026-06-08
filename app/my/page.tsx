@@ -4,6 +4,7 @@ import { EntryStatus } from "@/app/generated/prisma/enums";
 import { CustomListCreateForm } from "@/components/custom-list-create-form";
 import { MyCollectionContent } from "@/components/my-collection-content";
 import { PageShell } from "@/components/page-shell";
+import { getServerDictionary } from "@/lib/i18n-server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -14,27 +15,6 @@ type MyListPageProps = {
     list?: string;
   }>;
 };
-
-const systemCollections = [
-  {
-    key: "plan-to-watch",
-    status: EntryStatus.PLAN_TO_WATCH,
-    label: "Plan to Watch",
-    description: "Titles you want to start later.",
-  },
-  {
-    key: "watching",
-    status: EntryStatus.WATCHING,
-    label: "Watching",
-    description: "Titles currently in progress.",
-  },
-  {
-    key: "completed",
-    status: EntryStatus.COMPLETED,
-    label: "Completed",
-    description: "Titles you have finished.",
-  },
-] as const;
 
 const defaultSystemCollectionKey = "watching";
 
@@ -53,12 +33,34 @@ function countBadgeClass(selected: boolean) {
 }
 
 export default async function MyListPage({ searchParams }: MyListPageProps) {
+  const dictionary = await getServerDictionary();
+  const systemCollections = [
+    {
+      key: "plan-to-watch",
+      status: EntryStatus.PLAN_TO_WATCH,
+      label: dictionary.collections.planToWatch,
+      description: dictionary.collections.planToWatchDescription,
+    },
+    {
+      key: "watching",
+      status: EntryStatus.WATCHING,
+      label: dictionary.collections.watching,
+      description: dictionary.collections.watchingDescription,
+    },
+    {
+      key: "completed",
+      status: EntryStatus.COMPLETED,
+      label: dictionary.collections.completed,
+      description: dictionary.collections.completedDescription,
+    },
+  ] as const;
+
   if (!hasSupabaseEnv()) {
     return (
       <PageShell
-        eyebrow="Library"
-        title="My List"
-        description="Supabase environment variables are not configured yet. Add them before testing the protected page."
+        eyebrow={dictionary.library.eyebrow}
+        title={dictionary.library.title}
+        description={dictionary.library.noSupabase}
       />
     );
   }
@@ -80,7 +82,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
     redirect("/auth/login");
   }
 
-  const userEmail = user.email ?? "Signed-in user";
+  const userEmail = user.email ?? dictionary.common.signedInUser;
   const userProfile = await prisma.userProfile.findUnique({
     where: {
       authUserId: user.id,
@@ -233,16 +235,18 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
 
   return (
     <PageShell
-      eyebrow="Library"
-      title="My List"
-      description="Browse status collections and user-created custom lists in a compact collection hub."
+      eyebrow={dictionary.library.eyebrow}
+      title={dictionary.library.title}
+      description={dictionary.library.description}
       wide
     >
       <div className="grid gap-5">
         <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-zinc-500">Signed in as</p>
+              <p className="text-sm text-zinc-500">
+                {dictionary.library.signedInAs}
+              </p>
               <p className="mt-1 text-base font-medium text-zinc-900">
                 {userEmail}
               </p>
@@ -251,7 +255,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
               href="/search"
               className="inline-flex w-fit rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
             >
-              Add a title
+              {dictionary.library.addTitle}
             </Link>
           </div>
         </div>
@@ -260,9 +264,12 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
           <aside className="space-y-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
             <section className="space-y-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                System collections
+                {dictionary.library.systemCollections}
               </h2>
-              <nav className="grid gap-2" aria-label="System collections">
+              <nav
+                className="grid gap-2"
+                aria-label={dictionary.library.systemCollections}
+              >
                 {systemCollections.map((collection) => {
                   const selected = selectedSystemCollection?.key === collection.key;
                   const count = entryCountByStatus.get(collection.status) ?? 0;
@@ -283,14 +290,17 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
 
             <section className="space-y-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                User custom lists
+                {dictionary.library.customLists}
               </h2>
               {customLists.length === 0 ? (
                 <p className="rounded-md border border-dashed border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-500">
-                  No custom lists yet.
+                  {dictionary.library.noCustomLists}
                 </p>
               ) : (
-                <nav className="grid gap-2" aria-label="User custom lists">
+                <nav
+                  className="grid gap-2"
+                  aria-label={dictionary.library.customLists}
+                >
                   {customLists.map((customList) => {
                     const selected = selectedCustomList?.id === customList.id;
 
@@ -317,7 +327,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
                           </span>
                           <span
                             aria-hidden="true"
-                            title="More list actions coming soon"
+                            title={dictionary.library.moreActionsComingSoon}
                             className={`opacity-0 transition-opacity group-hover:opacity-100 ${
                               selected ? "text-zinc-500" : "text-zinc-400"
                             }`}
@@ -335,10 +345,10 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
 
             <section className="space-y-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Subscribed lists
+                {dictionary.library.subscribedLists}
               </h2>
               <p className="rounded-md border border-dashed border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-500">
-                Placeholder for a future subscribed-lists feature.
+                {dictionary.library.subscribedPlaceholder}
               </p>
             </section>
           </aside>
@@ -356,13 +366,13 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
             currentCustomListId={selectedCustomList?.id ?? null}
             emptyTitle={
               totalEntryCount === 0
-                ? "Your list is empty"
-                : "No titles in this collection"
+                ? dictionary.library.emptyAllTitle
+                : dictionary.library.emptyCollectionTitle
             }
             emptyDescription={
               totalEntryCount === 0
-                ? "Search for a movie or TV title, open its detail page, and choose a watch status to start building your list."
-                : "Add or assign saved titles from their title detail pages."
+                ? dictionary.library.emptyAllDescription
+                : dictionary.library.emptyCollectionDescription
             }
           />
         </div>

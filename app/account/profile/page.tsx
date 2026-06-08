@@ -1,19 +1,22 @@
 import { redirect } from "next/navigation";
 import { PageShell } from "@/components/page-shell";
+import { getServerDictionary } from "@/lib/i18n-server";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
-function getDisplayName(value: unknown) {
-  return typeof value === "string" && value.trim() ? value : "Not set";
+function getDisplayName(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? value : fallback;
 }
 
 export default async function AccountProfilePage() {
+  const dictionary = await getServerDictionary();
+
   if (!hasSupabaseEnv()) {
     return (
       <PageShell
-        eyebrow="Account"
-        title="Profile"
-        description="Supabase environment variables are not configured yet."
+        eyebrow={dictionary.accountPage.eyebrow}
+        title={dictionary.accountPage.profileTitle}
+        description={dictionary.accountPage.noSupabase}
       />
     );
   }
@@ -28,14 +31,17 @@ export default async function AccountProfilePage() {
     redirect("/auth/login");
   }
 
-  const displayName = getDisplayName(user.user_metadata.display_name);
+  const displayName = getDisplayName(
+    user.user_metadata.display_name,
+    dictionary.accountPage.notSet,
+  );
   const avatarLabel = user.email?.charAt(0).toUpperCase() ?? "?";
 
   return (
     <PageShell
-      eyebrow="Account"
-      title="Profile"
-      description="A minimal read-only account profile placeholder. Full profile editing is not implemented yet."
+      eyebrow={dictionary.accountPage.eyebrow}
+      title={dictionary.accountPage.profileTitle}
+      description={dictionary.accountPage.profileDescription}
     >
       <div className="grid gap-5 rounded-lg border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-700">
         <div className="flex items-center gap-3">
@@ -43,21 +49,29 @@ export default async function AccountProfilePage() {
             {avatarLabel}
           </div>
           <div>
-            <p className="font-medium text-zinc-950">Avatar placeholder</p>
-            <p className="text-zinc-500">No avatar upload is available yet.</p>
+            <p className="font-medium text-zinc-950">
+              {dictionary.accountPage.avatarPlaceholder}
+            </p>
+            <p className="text-zinc-500">{dictionary.accountPage.noAvatar}</p>
           </div>
         </div>
         <dl className="grid gap-3 sm:grid-cols-2">
           <div>
-            <dt className="font-medium text-zinc-900">Email</dt>
-            <dd>{user.email ?? "Not available"}</dd>
+            <dt className="font-medium text-zinc-900">
+              {dictionary.accountPage.email}
+            </dt>
+            <dd>{user.email ?? dictionary.common.notAvailable}</dd>
           </div>
           <div>
-            <dt className="font-medium text-zinc-900">Display name</dt>
+            <dt className="font-medium text-zinc-900">
+              {dictionary.accountPage.displayName}
+            </dt>
             <dd>{displayName}</dd>
           </div>
           <div className="sm:col-span-2">
-            <dt className="font-medium text-zinc-900">User ID</dt>
+            <dt className="font-medium text-zinc-900">
+              {dictionary.accountPage.userId}
+            </dt>
             <dd className="break-all font-mono text-xs">{user.id}</dd>
           </div>
         </dl>

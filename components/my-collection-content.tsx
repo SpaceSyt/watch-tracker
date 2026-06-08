@@ -13,6 +13,8 @@ import {
   removeTitleFromCustomList,
   updateTitleEntryCustomListsFromMy,
 } from "@/app/title/actions";
+import { useI18n, useLanguagePreference } from "@/components/language-preference";
+import { formatEntryStatus } from "@/lib/i18n";
 
 type CustomListOption = {
   id: string;
@@ -45,16 +47,16 @@ type MyCollectionContentProps = {
   emptyDescription: string;
 };
 
-function getYear(releaseDate: string | null) {
-  return releaseDate ? String(new Date(releaseDate).getUTCFullYear()) : "Unknown year";
+function getYear(releaseDate: string | null, unknownYear: string) {
+  return releaseDate ? String(new Date(releaseDate).getUTCFullYear()) : unknownYear;
 }
 
 function getMediaTypePath(mediaType: string) {
   return mediaType.toLowerCase();
 }
 
-function formatUpdatedAt(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+function formatUpdatedAt(value: string, language: "en" | "zh") {
+  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -75,20 +77,22 @@ function canShowRatingReview(status: EntryStatus) {
 function formatEpisodeProgress(
   progressCurrent: number | null,
   totalEpisodes: number | null,
+  notStarted: string,
+  episodes: string,
 ) {
   const hasKnownTotal = totalEpisodes !== null && totalEpisodes > 0;
 
   if (progressCurrent === null) {
-    return hasKnownTotal ? `Not started / ${totalEpisodes} episodes` : null;
+    return hasKnownTotal ? `${notStarted} / ${totalEpisodes} ${episodes}` : null;
   }
 
   if (!hasKnownTotal) {
-    return progressCurrent === 0 ? "Not started" : `${progressCurrent} episodes`;
+    return progressCurrent === 0 ? notStarted : `${progressCurrent} ${episodes}`;
   }
 
   return progressCurrent === 0
-    ? `Not started / ${totalEpisodes} episodes`
-    : `${progressCurrent} / ${totalEpisodes} episodes`;
+    ? `${notStarted} / ${totalEpisodes} ${episodes}`
+    : `${progressCurrent} / ${totalEpisodes} ${episodes}`;
 }
 
 function EpisodeProgressSummary({
@@ -102,29 +106,28 @@ function EpisodeProgressSummary({
   progressCurrent: number | null;
   totalEpisodes: number | null;
 }) {
+  const dictionary = useI18n();
+
   if (!canShowEpisodeProgress(status, mediaType)) {
     return null;
   }
 
-  const progress = formatEpisodeProgress(progressCurrent, totalEpisodes);
+  const progress = formatEpisodeProgress(
+    progressCurrent,
+    totalEpisodes,
+    dictionary.collectionContent.notStarted,
+    dictionary.collectionContent.episodes,
+  );
 
   if (!progress) {
     return null;
   }
 
-  return <p className="text-xs font-medium text-zinc-700">Progress: {progress}</p>;
-}
-
-function formatStatus(status: EntryStatus) {
-  if (status === EntryStatus.PLAN_TO_WATCH) {
-    return "Want to Watch";
-  }
-
-  if (status === EntryStatus.WATCHING) {
-    return "Watching";
-  }
-
-  return "Completed";
+  return (
+    <p className="text-xs font-medium text-zinc-700">
+      {dictionary.collectionContent.progress}: {progress}
+    </p>
+  );
 }
 
 function EmptyCollection({
@@ -134,6 +137,8 @@ function EmptyCollection({
   title: string;
   description: string;
 }) {
+  const dictionary = useI18n();
+
   return (
     <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-8 text-center">
       <h2 className="text-base font-semibold text-zinc-950">{title}</h2>
@@ -144,7 +149,7 @@ function EmptyCollection({
         href="/search"
         className="mt-5 inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100"
       >
-        Search titles
+        {dictionary.collectionContent.searchTitles}
       </Link>
     </div>
   );
@@ -179,6 +184,7 @@ function BatchListModal({
   sourceListId,
   onClose,
 }: BatchListModalProps) {
+  const dictionary = useI18n();
   const [targetListId, setTargetListId] = useState("");
 
   useEffect(() => {
@@ -226,7 +232,7 @@ function BatchListModal({
           ) : null}
           {lists.length === 0 ? (
             <p className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-4 text-sm text-zinc-500">
-              Create another custom list before using this batch action.
+              {dictionary.collectionContent.createAnotherList}
             </p>
           ) : (
             lists.map((list) => (
@@ -257,14 +263,14 @@ function BatchListModal({
             onClick={onClose}
             className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
           >
-            Cancel
+            {dictionary.common.cancel}
           </button>
           <button
             type="submit"
             disabled={!canSubmit}
             className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-100 disabled:text-zinc-400"
           >
-            Confirm
+            {dictionary.common.confirm}
           </button>
         </div>
       </form>
@@ -283,6 +289,7 @@ function CardActionMenu({
   customLists: CustomListOption[];
   currentCustomListId: string | null;
 }) {
+  const dictionary = useI18n();
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const selectedListIds = new Set(
@@ -290,11 +297,11 @@ function CardActionMenu({
   );
   const isCustomListView = Boolean(currentCustomListId);
   const removeLabel = isCustomListView
-    ? "Remove from this list"
-    : "Remove from my list";
+    ? dictionary.collectionContent.removeFromThisList
+    : dictionary.collectionContent.removeFromMyList;
   const removeDescription = isCustomListView
-    ? "Removes this title from the current custom list only. Your saved status, rating, review, progress, and other list memberships are kept."
-    : "Removes your saved status, rating, review, and custom-list assignments for this title.";
+    ? dictionary.collectionContent.removeFromThisListDescription
+    : dictionary.collectionContent.removeFromMyListDescription;
 
   useEffect(() => {
     if (!isOpen) {
@@ -330,7 +337,7 @@ function CardActionMenu({
         className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-zinc-300 bg-white font-semibold text-zinc-700 hover:bg-zinc-100"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label={`Open actions for ${entry.titleName}`}
+        aria-label={dictionary.collectionContent.openActionsFor(entry.titleName)}
       >
         <span aria-hidden="true">…</span>
       </button>
@@ -338,14 +345,14 @@ function CardActionMenu({
         <div
           className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg"
           role="menu"
-          aria-label={`Actions for ${entry.titleName}`}
+          aria-label={dictionary.collectionContent.actionsFor(entry.titleName)}
         >
           <p className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
-            Actions
+            {dictionary.collectionContent.actions}
           </p>
           <details className="border-t border-zinc-100">
             <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
-              Change lists
+              {dictionary.collectionContent.changeLists}
             </summary>
             <form
               action={updateTitleEntryCustomListsFromMy}
@@ -369,11 +376,13 @@ function CardActionMenu({
               />
               {customLists.length === 0 ? (
                 <p className="text-xs leading-5 text-zinc-500">
-                  Create custom lists from the sidebar or a title detail page.
+                  {dictionary.collectionContent.createCustomListsHint}
                 </p>
               ) : (
                 <fieldset className="grid max-h-40 gap-1 overflow-auto pr-1">
-                  <legend className="sr-only">Custom lists</legend>
+                  <legend className="sr-only">
+                    {dictionary.collectionContent.customLists}
+                  </legend>
                   {customLists.map((customList) => (
                     <label
                       key={customList.id}
@@ -395,14 +404,14 @@ function CardActionMenu({
                 type="submit"
                 className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
               >
-                Save list changes
+                {dictionary.collectionContent.saveListChanges}
               </button>
               <Link
                 href={titleHref}
                 onClick={() => setIsOpen(false)}
                 className="text-xs font-medium text-zinc-500 hover:text-zinc-900"
               >
-                Open detail page
+                {dictionary.collectionContent.openDetailPage}
               </Link>
             </form>
           </details>
@@ -447,6 +456,8 @@ export function MyCollectionContent({
   emptyTitle,
   emptyDescription,
 }: MyCollectionContentProps) {
+  const dictionary = useI18n();
+  const language = useLanguagePreference();
   const [copyState, copyFormAction] = useActionState(
     copySelectedTitlesToCustomList,
     initialBatchCustomListActionState,
@@ -473,8 +484,8 @@ export function MyCollectionContent({
     ? removeSelectedTitlesFromCustomList
     : deleteSelectedTitlesFromList;
   const batchRemoveLabel = currentCustomListId
-    ? "Remove selected from this list"
-    : "Delete selected";
+    ? dictionary.collectionContent.removeSelectedFromThisList
+    : dictionary.collectionContent.deleteSelected;
 
   function toggleEntry(entryId: string) {
     setSelectedEntryIds((current) =>
@@ -512,11 +523,15 @@ export function MyCollectionContent({
                 onClick={toggleSelectAll}
                 className="w-fit rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
               >
-                {allEntriesSelected ? "Deselect all" : "Select all"}
+                {allEntriesSelected
+                  ? dictionary.collectionContent.deselectAll
+                  : dictionary.collectionContent.selectAll}
               </button>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-zinc-500">
-                  {selectedEntryIds.length} selected
+                  {dictionary.collectionContent.selectedCount(
+                    selectedEntryIds.length,
+                  )}
                 </span>
                 <form
                   action={batchRemoveAction}
@@ -546,7 +561,7 @@ export function MyCollectionContent({
                   }
                   className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
                 >
-                  Copy to list
+                  {dictionary.collectionContent.copyToList}
                 </button>
                 {currentCustomListId ? (
                   <button
@@ -557,16 +572,16 @@ export function MyCollectionContent({
                     }
                     className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
                   >
-                    Move to list
+                    {dictionary.collectionContent.moveToList}
                   </button>
                 ) : (
                   <button
                     type="button"
                     disabled
-                    title="Move is available inside a custom list."
+                    title={dictionary.collectionContent.moveAvailableInCustomList}
                     className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm font-medium text-zinc-400"
                   >
-                    Move is available inside a custom list
+                    {dictionary.collectionContent.moveAvailableInCustomList}
                   </button>
                 )}
                 <button
@@ -574,7 +589,7 @@ export function MyCollectionContent({
                   onClick={exitBatchMode}
                   className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
                 >
-                  Done
+                  {dictionary.common.done}
                 </button>
               </div>
             </div>
@@ -582,14 +597,14 @@ export function MyCollectionContent({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-1 flex-wrap items-center gap-2">
                 <div className="min-w-0 flex-1 rounded-md border border-dashed border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-400 sm:max-w-xs">
-                  Search this collection soon
+                  {dictionary.collectionContent.searchThisCollectionSoon}
                 </div>
                 <button
                   type="button"
                   disabled
                   className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-400"
                 >
-                  Sort: Recently updated
+                  {dictionary.collectionContent.sortRecentlyUpdated}
                 </button>
               </div>
               <button
@@ -597,7 +612,7 @@ export function MyCollectionContent({
                 onClick={enterBatchMode}
                 className="w-fit rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
               >
-                Batch actions
+                {dictionary.collectionContent.batchActions}
               </button>
             </div>
           )}
@@ -651,7 +666,9 @@ export function MyCollectionContent({
                       onChange={() => toggleEntry(entry.id)}
                       className="h-4 w-4 rounded border-zinc-300"
                     />
-                    <span className="sr-only">Select {entry.titleName}</span>
+                    <span className="sr-only">
+                      {dictionary.collectionContent.selectTitle(entry.titleName)}
+                    </span>
                   </label>
                 ) : null}
                 <Link
@@ -666,7 +683,7 @@ export function MyCollectionContent({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span>No poster</span>
+                    <span>{dictionary.common.noPoster}</span>
                   )}
                 </Link>
                 <div className="min-w-0">
@@ -679,7 +696,14 @@ export function MyCollectionContent({
                         {entry.titleName}
                       </Link>
                       <p className="mt-1 text-xs text-zinc-500">
-                        {entry.titleMediaType} / {getYear(entry.titleReleaseDate)}
+                        {entry.titleMediaType === "MOVIE"
+                          ? dictionary.common.movie
+                          : dictionary.common.tv}{" "}
+                        /{" "}
+                        {getYear(
+                          entry.titleReleaseDate,
+                          dictionary.common.unknownYear,
+                        )}
                       </p>
                     </div>
                     <CardActionMenu
@@ -692,7 +716,7 @@ export function MyCollectionContent({
 
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <span className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700">
-                      {formatStatus(entry.status)}
+                      {formatEntryStatus(entry.status, dictionary)}
                     </span>
                     {entry.customLists.slice(0, 2).map((customList) => (
                       <span
@@ -705,12 +729,17 @@ export function MyCollectionContent({
                   </div>
 
                   <p className="mt-2 text-xs text-zinc-500">
-                    Updated {formatUpdatedAt(entry.updatedAt)}
+                    {dictionary.collectionContent.updated(
+                      formatUpdatedAt(entry.updatedAt, language),
+                    )}
                   </p>
                   {showRatingReview ? (
                     <>
                       <p className="mt-2 text-xs font-medium text-zinc-700">
-                        Rating: {entry.rating ? `${entry.rating}/10` : "Not rated"}
+                        {dictionary.collectionContent.rating}:{" "}
+                        {entry.rating
+                          ? `${entry.rating}/10`
+                          : dictionary.collectionContent.notRated}
                       </p>
                       {entry.review ? (
                         <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-600">
@@ -735,8 +764,8 @@ export function MyCollectionContent({
       )}
       {activeBatchModal === "copy" ? (
         <BatchListModal
-          title="Copy selected titles to"
-          description="Choose one custom list. Existing list memberships are kept."
+          title={dictionary.collectionContent.copyModalTitle}
+          description={dictionary.collectionContent.copyModalDescription}
           action={copyFormAction}
           entryIds={selectedEntryIds}
           lists={customLists}
@@ -745,8 +774,8 @@ export function MyCollectionContent({
       ) : null}
       {activeBatchModal === "move" && currentCustomListId ? (
         <BatchListModal
-          title="Move selected titles to"
-          description="Choose a destination list. Titles are removed from the current custom list only."
+          title={dictionary.collectionContent.moveModalTitle}
+          description={dictionary.collectionContent.moveModalDescription}
           action={moveFormAction}
           entryIds={selectedEntryIds}
           lists={moveTargetLists}

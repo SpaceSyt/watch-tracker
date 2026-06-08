@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
+import { getLanguagePreference } from "@/lib/i18n-server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,7 +18,14 @@ const themePreferenceScript = `
 (function () {
   try {
     var theme = localStorage.getItem("watch-tracker-theme") || "system";
-    var language = localStorage.getItem("watch-tracker-language") || "en";
+    var languageCookie = document.cookie
+      .split("; ")
+      .find(function (cookie) {
+        return cookie.indexOf("watch-tracker-language=") === 0;
+      });
+    var cookieLanguage = languageCookie ? languageCookie.split("=")[1] : null;
+    var language =
+      localStorage.getItem("watch-tracker-language") || cookieLanguage || "en";
     var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     var shouldUseDark = theme === "dark" || (theme === "system" && prefersDark);
     var root = document.documentElement;
@@ -38,14 +46,16 @@ export const metadata: Metadata = {
   description: "Search TMDB movies and TV shows, then track them in one place.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const language = await getLanguagePreference();
+
   return (
     <html
-      lang="en"
+      lang={language === "zh" ? "zh-CN" : "en"}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >

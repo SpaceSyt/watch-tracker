@@ -4,9 +4,11 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { initialCreateCustomListState } from "@/app/title/action-state";
 import { createCustomListFromMy } from "@/app/title/actions";
+import { useI18n } from "@/components/language-preference";
 
 function CreateButton() {
   const { pending } = useFormStatus();
+  const dictionary = useI18n();
 
   return (
     <button
@@ -14,12 +16,13 @@ function CreateButton() {
       disabled={pending}
       className="w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
     >
-      {pending ? "Creating..." : "Create"}
+      {pending ? dictionary.common.creating : dictionary.common.create}
     </button>
   );
 }
 
 export function CustomListCreateForm() {
+  const dictionary = useI18n();
   const [state, formAction] = useActionState(
     createCustomListFromMy,
     initialCreateCustomListState,
@@ -28,14 +31,14 @@ export function CustomListCreateForm() {
   return (
     <details className="w-full min-w-0 rounded-md border border-dashed border-zinc-300 bg-white px-3 py-2">
       <summary className="cursor-pointer list-none text-sm font-medium text-zinc-700 hover:text-zinc-950">
-        + New list
+        {dictionary.library.newList}
       </summary>
       <form action={formAction} className="mt-2 grid min-w-0 gap-2">
         <input
           type="text"
           name="name"
           maxLength={60}
-          placeholder="List name"
+          placeholder={dictionary.library.listName}
           className="min-h-8 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm text-zinc-900"
         />
         <CreateButton />

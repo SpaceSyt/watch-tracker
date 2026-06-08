@@ -1,10 +1,13 @@
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
 import { PageShell } from "@/components/page-shell";
+import { getServerDictionary } from "@/lib/i18n-server";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export default async function LoginPage() {
+  const dictionary = await getServerDictionary();
+
   if (hasSupabaseEnv()) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getClaims();
@@ -16,9 +19,9 @@ export default async function LoginPage() {
 
   return (
     <PageShell
-      eyebrow="Auth"
-      title="Login"
-      description="Log in with your email and password. This page is intentionally simple and only covers the base auth flow."
+      eyebrow={dictionary.auth.eyebrow}
+      title={dictionary.auth.loginTitle}
+      description={dictionary.auth.loginDescription}
     >
       <AuthForm mode="login" />
     </PageShell>

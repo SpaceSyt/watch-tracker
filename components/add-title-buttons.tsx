@@ -7,6 +7,7 @@ import {
   initialAddTitleEntryState,
   initialUpdateTitleEntryFeedbackState,
 } from "@/app/title/action-state";
+import { useI18n } from "@/components/language-preference";
 import { addTitleToList, updateTitleEntryFeedback } from "@/app/title/actions";
 import { EntryStatus } from "@/app/generated/prisma/enums";
 
@@ -22,16 +23,16 @@ type AddTitleButtonsProps = {
   statusAction?: ReactNode;
 };
 
-function formatEntryStatus(status: EntryStatus) {
+function formatEntryStatus(status: EntryStatus, dictionary: ReturnType<typeof useI18n>) {
   if (status === EntryStatus.PLAN_TO_WATCH) {
-    return "Want to Watch";
+    return dictionary.titleActions.wantToWatch;
   }
 
   if (status === EntryStatus.WATCHING) {
-    return "Watching";
+    return dictionary.titleActions.watching;
   }
 
-  return "Completed";
+  return dictionary.titleActions.completed;
 }
 
 function StatusButton({
@@ -44,6 +45,7 @@ function StatusButton({
   value: EntryStatus;
 }) {
   const { pending } = useFormStatus();
+  const dictionary = useI18n();
 
   return (
     <button
@@ -58,13 +60,14 @@ function StatusButton({
           : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100 disabled:text-zinc-400"
       }`}
     >
-      {pending ? "Saving..." : label}
+      {pending ? dictionary.common.saving : label}
     </button>
   );
 }
 
 function FeedbackButton() {
   const { pending } = useFormStatus();
+  const dictionary = useI18n();
 
   return (
     <button
@@ -72,7 +75,9 @@ function FeedbackButton() {
       disabled={pending}
       className="min-h-10 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
     >
-      {pending ? "Saving..." : "Save rating and review"}
+      {pending
+        ? dictionary.common.saving
+        : dictionary.titleActions.saveRatingReview}
     </button>
   );
 }
@@ -88,6 +93,7 @@ export function AddTitleButtons({
   showRatingReview = false,
   statusAction,
 }: AddTitleButtonsProps) {
+  const dictionary = useI18n();
   const [state, formAction] = useActionState(
     addTitleToList,
     initialAddTitleEntryState,
@@ -102,9 +108,9 @@ export function AddTitleButtons({
     <div className="space-y-3">
       {currentStatus ? (
         <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700">
-          Saved status:{" "}
+          {dictionary.titleActions.savedStatus}:{" "}
           <span className="text-zinc-950">
-            {formatEntryStatus(currentStatus)}
+            {formatEntryStatus(currentStatus, dictionary)}
           </span>
         </p>
       ) : null}
@@ -117,17 +123,17 @@ export function AddTitleButtons({
 
           <div className="flex flex-wrap gap-2">
             <StatusButton
-              label="Want to Watch"
+              label={dictionary.titleActions.wantToWatch}
               selected={currentStatus === EntryStatus.PLAN_TO_WATCH}
               value={EntryStatus.PLAN_TO_WATCH}
             />
             <StatusButton
-              label="Watching"
+              label={dictionary.titleActions.watching}
               selected={currentStatus === EntryStatus.WATCHING}
               value={EntryStatus.WATCHING}
             />
             <StatusButton
-              label="Completed"
+              label={dictionary.titleActions.completed}
               selected={currentStatus === EntryStatus.COMPLETED}
               value={EntryStatus.COMPLETED}
             />
@@ -156,13 +162,13 @@ export function AddTitleButtons({
         >
           <input type="hidden" name="entryId" value={entryId} />
           <label className="grid gap-1 text-sm font-medium text-zinc-700">
-            Rating
+            {dictionary.titleActions.rating}
             <select
               name="rating"
               defaultValue={initialRating ?? ""}
               className="min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
             >
-              <option value="">No rating</option>
+              <option value="">{dictionary.titleActions.noRating}</option>
               {Array.from({ length: 10 }, (_, index) => index + 1).map(
                 (rating) => (
                   <option key={rating} value={rating}>
@@ -173,13 +179,13 @@ export function AddTitleButtons({
             </select>
           </label>
           <label className="grid gap-1 text-sm font-medium text-zinc-700">
-            Short review
+            {dictionary.titleActions.shortReview}
             <textarea
               name="review"
               defaultValue={initialReview ?? ""}
               maxLength={500}
               rows={3}
-              placeholder="Add a short note about this title."
+              placeholder={dictionary.titleActions.reviewPlaceholder}
               className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm leading-6 text-zinc-900"
             />
           </label>

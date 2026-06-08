@@ -1,21 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import {
+  emitPreferenceChange,
+  setLanguagePreference,
+  useI18n,
+  useLanguagePreference,
+} from "@/components/language-preference";
+import { getLanguageLabel, type LanguagePreference } from "@/lib/i18n";
 
 type ThemePreference = "light" | "dark" | "system";
-type LanguagePreference = "en" | "zh";
 
 const themeStorageKey = "watch-tracker-theme";
-const languageStorageKey = "watch-tracker-language";
-const preferenceChangeEvent = "watch-tracker-preference-change";
 const themeOrder: ThemePreference[] = ["light", "dark", "system"];
 
 function isThemePreference(value: string | null): value is ThemePreference {
   return value === "light" || value === "dark" || value === "system";
-}
-
-function isLanguagePreference(value: string | null): value is LanguagePreference {
-  return value === "en" || value === "zh";
 }
 
 function systemPrefersDark() {
@@ -32,11 +33,6 @@ function applyTheme(theme: ThemePreference) {
   root.dataset.theme = shouldUseDark ? "dark" : "light";
 }
 
-function applyLanguage(language: LanguagePreference) {
-  document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-  document.documentElement.dataset.languagePreference = language;
-}
-
 function getStoredTheme(): ThemePreference {
   if (typeof window === "undefined") {
     return "system";
@@ -47,28 +43,14 @@ function getStoredTheme(): ThemePreference {
   return isThemePreference(storedTheme) ? storedTheme : "system";
 }
 
-function getStoredLanguage(): LanguagePreference {
-  if (typeof window === "undefined") {
-    return "en";
-  }
-
-  const storedLanguage = localStorage.getItem(languageStorageKey);
-
-  return isLanguagePreference(storedLanguage) ? storedLanguage : "en";
-}
-
 function subscribePreferences(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);
-  window.addEventListener(preferenceChangeEvent, onStoreChange);
+  window.addEventListener("watch-tracker-preference-change", onStoreChange);
 
   return () => {
     window.removeEventListener("storage", onStoreChange);
-    window.removeEventListener(preferenceChangeEvent, onStoreChange);
+    window.removeEventListener("watch-tracker-preference-change", onStoreChange);
   };
-}
-
-function emitPreferenceChange() {
-  window.dispatchEvent(new Event(preferenceChangeEvent));
 }
 
 function getThemeSymbol(theme: ThemePreference) {
@@ -89,11 +71,13 @@ function getNextTheme(theme: ThemePreference) {
   return themeOrder[(currentIndex + 1) % themeOrder.length];
 }
 
-function getLanguageLabel(language: LanguagePreference) {
-  return language === "zh" ? "ZH-CN" : "EN-US";
-}
+type SettingsMenuProps = {
+  initialLanguage?: LanguagePreference;
+};
 
-export function SettingsMenu() {
+export function SettingsMenu({ initialLanguage = "en" }: SettingsMenuProps) {
+  const router = useRouter();
+  const dictionary = useI18n(initialLanguage);
   const languageMenuRef = useRef<HTMLDivElement>(null);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const theme = useSyncExternalStore<ThemePreference>(
@@ -101,19 +85,11 @@ export function SettingsMenu() {
     getStoredTheme,
     () => "system",
   );
-  const language = useSyncExternalStore<LanguagePreference>(
-    subscribePreferences,
-    getStoredLanguage,
-    () => "en",
-  );
+  const language = useLanguagePreference(initialLanguage);
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
-
-  useEffect(() => {
-    applyLanguage(language);
-  }, [language]);
 
   useEffect(() => {
     if (theme !== "system") {
@@ -162,19 +138,22 @@ export function SettingsMenu() {
   }
 
   function selectLanguage(nextLanguage: LanguagePreference) {
-    localStorage.setItem(languageStorageKey, nextLanguage);
-    emitPreferenceChange();
+    setLanguagePreference(nextLanguage);
     setIsLanguageMenuOpen(false);
+    router.refresh();
   }
 
   return (
-    <div className="flex items-center gap-2" aria-label="Global preferences">
+    <div
+      className="flex items-center gap-2"
+      aria-label={dictionary.settingsMenu.globalPreferences}
+    >
       <button
         type="button"
         onClick={cycleTheme}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-        aria-label={`Theme preference: ${theme}. Click to cycle Light, Dark, System.`}
-        title={`Theme: ${theme}`}
+        aria-label={dictionary.settingsMenu.themeAria(theme)}
+        title={dictionary.settingsMenu.themeTitle(theme)}
       >
         {getThemeSymbol(theme)}
       </button>
@@ -185,8 +164,8 @@ export function SettingsMenu() {
           className="min-h-10 rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
           aria-haspopup="menu"
           aria-expanded={isLanguageMenuOpen}
-          aria-label="Open language preference menu. Full translation support is not complete yet."
-          title="Language preference only; full translation support is not complete yet."
+          aria-label={dictionary.settingsMenu.languageAria}
+          title={dictionary.settingsMenu.languageTitle}
         >
           {getLanguageLabel(language)}
         </button>
@@ -194,11 +173,8 @@ export function SettingsMenu() {
           <div
             className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-lg border border-zinc-200 bg-white text-sm shadow-lg"
             role="menu"
-            aria-label="Language preference"
+            aria-label={dictionary.settingsMenu.languagePreference}
           >
-            <div className="border-b border-zinc-100 px-3 py-2 text-xs text-zinc-500">
-              Preference only
-            </div>
             <div className="grid py-1">
               {(["en", "zh"] as const).map((option) => (
                 <button
@@ -211,7 +187,7 @@ export function SettingsMenu() {
                   <span>{getLanguageLabel(option)}</span>
                   {language === option ? (
                     <span aria-hidden="true" className="text-xs text-zinc-500">
-                      Selected
+                      {dictionary.common.selected}
                     </span>
                   ) : null}
                 </button>

@@ -3,18 +3,22 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/components/language-preference";
 import { createClient } from "@/lib/supabase/client";
+import type { LanguagePreference } from "@/lib/i18n";
 
 type AccountMenuProps = {
   userEmail: string | null;
+  initialLanguage?: LanguagePreference;
 };
 
 function getAvatarLabel() {
   return "A";
 }
 
-export function AccountMenu({ userEmail }: AccountMenuProps) {
+export function AccountMenu({ userEmail, initialLanguage = "en" }: AccountMenuProps) {
   const router = useRouter();
+  const dictionary = useI18n(initialLanguage);
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +65,7 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
       router.refresh();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Unexpected logout error.";
+        error instanceof Error ? error.message : dictionary.common.externalError;
 
       window.alert(message);
       setIsSubmitting(false);
@@ -76,7 +80,7 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
         className="flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-zinc-200 bg-white px-2 py-1 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label="Open account menu"
+        aria-label={dictionary.header.openAccountMenu}
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-full border border-zinc-300 bg-white text-xs font-semibold text-zinc-800">
           {getAvatarLabel()}
@@ -86,14 +90,14 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
         <div
           className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-zinc-200 bg-white text-sm shadow-lg"
           role="menu"
-          aria-label="Account menu"
+          aria-label={dictionary.header.accountMenu}
         >
           <div className="border-b border-zinc-100 px-3 py-2">
             <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-              Account
+              {dictionary.common.account}
             </p>
             <p className="mt-1 truncate text-zinc-700">
-              {userEmail ?? "Not logged in"}
+              {userEmail ?? dictionary.common.notLoggedIn}
             </p>
           </div>
           {isLoggedIn ? (
@@ -104,7 +108,7 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
                 className="px-3 py-2 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
                 role="menuitem"
               >
-                Profile
+                {dictionary.common.profile}
               </Link>
               <Link
                 href="/account/settings"
@@ -112,7 +116,7 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
                 className="px-3 py-2 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
                 role="menuitem"
               >
-                Settings
+                {dictionary.common.settings}
               </Link>
               <button
                 type="button"
@@ -121,7 +125,9 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
                 className="px-3 py-2 text-left text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:text-zinc-400"
                 role="menuitem"
               >
-                {isSubmitting ? "Logging out..." : "Logout"}
+                {isSubmitting
+                  ? dictionary.common.loggingOut
+                  : dictionary.common.logout}
               </button>
             </div>
           ) : (
@@ -132,7 +138,7 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
                 className="px-3 py-2 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
                 role="menuitem"
               >
-                Login
+                {dictionary.common.login}
               </Link>
               <Link
                 href="/auth/signup"
@@ -140,7 +146,7 @@ export function AccountMenu({ userEmail }: AccountMenuProps) {
                 className="px-3 py-2 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900"
                 role="menuitem"
               >
-                Sign Up
+                {dictionary.common.signup}
               </Link>
             </div>
           )}
