@@ -1,5 +1,8 @@
 # Watch Tracker
 
+[![CI](https://github.com/SpaceSyt/watch-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/SpaceSyt/watch-tracker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A web app for searching TMDB movies and TV shows, then tracking them in a personal watch list.
 
 Current stage: early MVP with search, title details, authentication, saved
@@ -57,7 +60,9 @@ If a user is not signed in, the add-to-list action returns an inline login promp
 
 Use `/my` to view saved titles. The page requires Supabase auth when Supabase environment variables are configured, then groups entries into Plan to Watch, Watching, and Completed sections sorted by recent updates.
 
-Each saved entry can also store your private 1-10 rating and a short review. Rating and review edits are available from the saved entry card on `/my`.
+Each saved entry can also store your private 1-10 rating and a short review.
+Rating and review edits are available from the title detail page for Watching
+and Completed entries. `/my` keeps those values as compact summaries.
 
 TV entries in Watching or Completed can store episode progress. The title
 detail page provides the editor, while `/my` shows a compact progress summary.
@@ -133,7 +138,7 @@ Fill in `.env.local` with:
 Install dependencies, generate the Prisma client, and start the dev server:
 
 ```bash
-npm install
+npm ci
 npx prisma generate
 npm run dev
 ```
