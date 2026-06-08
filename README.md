@@ -2,7 +2,8 @@
 
 A web app for searching TMDB movies and TV shows, then tracking them in a personal watch list.
 
-Current stage: early MVP with real search, title detail, auth, and list flows.
+Current stage: early MVP with search, title details, authentication, saved
+collections, custom lists, ratings, reviews, and TV episode progress.
 
 ---
 
@@ -20,12 +21,14 @@ This project currently includes:
 * Add-to-list actions from title detail pages and saved list entries
 * Protected `/my` page that groups saved titles by watch status
 * Per-user 1-10 ratings and short reviews for saved title entries
-* Prisma models for user profiles, titles, and user title entries
+* TV episode progress for Watching and Completed entries
+* User-created custom lists with per-title assignment
+* Batch copy, move, and removal actions for custom lists
+* Prisma models and migrations for profiles, titles, entries, and custom lists
 
 Not implemented yet:
 
-* Tags / custom lists
-* Episode progress tracking UI
+* Tags
 * Anime-specific search or title support
 
 ---
@@ -56,6 +59,12 @@ Use `/my` to view saved titles. The page requires Supabase auth when Supabase en
 
 Each saved entry can also store your private 1-10 rating and a short review. Rating and review edits are available from the saved entry card on `/my`.
 
+TV entries in Watching or Completed can store episode progress. The title
+detail page provides the editor, while `/my` shows a compact progress summary.
+
+You can also create custom lists, assign saved titles to one or more lists, and
+use batch actions to copy, move, or remove selected titles.
+
 If the list is empty, `/my` links back to `/search` so users can add their first title.
 
 ---
@@ -78,13 +87,12 @@ Before running locally, install:
 
 * Node.js 22+ or 24 LTS
 * Git
-* VS Code
 * A Supabase account/project
 * A TMDB API key or access token
 
 Optional but recommended:
 
-* GitHub account
+* VS Code
 * Prisma extension for VS Code
 * ESLint extension for VS Code
 
@@ -101,8 +109,16 @@ cd watch-tracker
 
 Create your local environment file:
 
+macOS/Linux:
+
 ```bash
 cp .env.local.example .env.local
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.local.example .env.local
 ```
 
 Fill in `.env.local` with:
@@ -135,11 +151,14 @@ Prisma client must be generated locally after environment setup. If you skip `np
 3. Copy the connection string (URI)
 4. Use that connection string for `DATABASE_URL` in `.env.local`
 
-Run migrations only when you need to create or update the local schema:
+Apply the existing migrations to a development database:
 
 ```bash
-npx prisma migrate dev --name init_mvp_schema
+npx prisma migrate dev
 ```
+
+Create a named migration only after intentionally changing
+`prisma/schema.prisma`.
 
 ---
 
@@ -172,6 +191,22 @@ npx tsc --noEmit --incremental false
 
 ## Roadmap (Next Steps)
 
-* Tags / custom lists
-* Episode progress tracking UI
+* Tags
 * Additional entry editing beyond watch status, rating, and short review
+* Anime-specific search, detail, save, and display flows
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, validation, and pull request
+expectations.
+
+## Security
+
+Do not open a public issue for a suspected vulnerability or exposed secret.
+Follow [SECURITY.md](SECURITY.md) instead.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
