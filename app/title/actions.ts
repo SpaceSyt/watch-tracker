@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { EntryStatus, MediaType } from "@/app/generated/prisma/enums";
 import type {
   AddTitleEntryState,
   BatchCustomListActionState,
   CreateCustomListState,
+  CustomListActionState,
   UpdateTitleEntryFeedbackState,
   UpdateTitleEntryCustomListsState,
   UpdateTitleEntryProgressState,
@@ -16,7 +18,9 @@ import {
   batchMoveEntriesBetweenCustomLists,
   batchRemoveEntriesFromCustomList,
   createCustomList,
+  deleteCustomList,
   getCustomListAssignmentsForEntry,
+  renameCustomList,
   replaceEntryCustomListAssignments,
 } from "@/lib/custom-lists";
 import { prisma } from "@/lib/prisma";
@@ -571,6 +575,82 @@ export async function createCustomListFromMy(
   }
 }
 
+export async function renameCustomListFromMy(
+  _previousState: CustomListActionState,
+  formData: FormData,
+): Promise<CustomListActionState> {
+  const listId = parseBatchCustomListId(formData.get("listId"));
+  const name = formData.get("name");
+
+  if (!listId || typeof name !== "string") {
+    return { status: "error", message: "Invalid custom list request." };
+  }
+
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    return {
+      status: "error",
+      message: "Log in before renaming a custom list.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+    const customList = await renameCustomList({
+      userId: userProfile.id,
+      listId,
+      name,
+    });
+
+    revalidatePath("/my");
+
+    return {
+      status: "success",
+      message: `Renamed list to "${customList.name}".`,
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to rename this custom list.";
+
+    return { status: "error", message };
+  }
+}
+
+export async function deleteCustomListFromMy(formData: FormData): Promise<void> {
+  const listId = parseBatchCustomListId(formData.get("listId"));
+  const returnToDefault = formData.get("returnToDefault") === "true";
+
+  if (!listId) {
+    return;
+  }
+
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    return;
+  }
+
+  const userProfile = await getOrCreateUserProfile(user);
+
+  try {
+    await deleteCustomList({
+      userId: userProfile.id,
+      listId,
+    });
+  } catch {
+    return;
+  }
+
+  revalidatePath("/my");
+
+  if (returnToDefault) {
+    redirect("/my");
+  }
+}
+
 export async function updateTitleEntryCustomLists(
   _previousState: UpdateTitleEntryCustomListsState,
   formData: FormData,
@@ -817,6 +897,111 @@ export async function moveSelectedTitlesToCustomList(
       message: `Moved ${result.count} selected title${
         result.count === 1 ? "" : "s"
       } to the custom list.`,
+    };
+  } catch (writeError) {
+    const message =
+      writeError instanceof Error
+        ? writeError.message
+        : "Failed to move selected titles.";
+
+    return { status: "error", message };
+  }
+}
+
+export async function moveSelectedTitlesToStatus(
+  _previousState: BatchCustomListActionState,
+  formData: FormData,
+): Promise<BatchCustomListActionState> {
+  const entryIds = parseEntryIds(formData);
+  const targetStatus = formData.get("targetStatus");
+
+  if (entryIds === null) {
+    return {
+      status: "error",
+      message: `Select ${maxBatchDeleteEntryIds} saved titles or fewer.`,
+    };
+  }
+
+  if (entryIds.length === 0) {
+    return { status: "error", message: "Select at least one saved title." };
+  }
+
+  if (typeof targetStatus !== "string" || !isEntryStatus(targetStatus)) {
+    return { status: "error", message: "Choose a system collection to move to." };
+  }
+
+  const user = await getAuthenticatedUser();
+
+  if (!user) {
+    return {
+      status: "error",
+      message: "Log in before updating saved titles.",
+    };
+  }
+
+  try {
+    const userProfile = await getOrCreateUserProfile(user);
+    const entries = await prisma.userTitleEntry.findMany({
+      where: {
+        userId: userProfile.id,
+        id: {
+          in: entryIds,
+        },
+      },
+      select: {
+        id: true,
+        title: {
+          select: {
+            externalSource: true,
+            mediaType: true,
+            externalId: true,
+          },
+        },
+      },
+    });
+
+    if (entries.length !== entryIds.length) {
+      return { status: "error", message: "One or more saved titles were not found." };
+    }
+
+    await prisma.userTitleEntry.updateMany({
+      where: {
+        userId: userProfile.id,
+        id: {
+          in: entries.map((entry) => entry.id),
+        },
+      },
+      data: {
+        status: targetStatus,
+        ...(targetStatus === EntryStatus.PLAN_TO_WATCH
+          ? {
+              rating: null,
+              review: null,
+              progressCurrent: null,
+            }
+          : {}),
+      },
+    });
+
+    revalidatePath("/my");
+
+    for (const entry of entries) {
+      const titlePath = getTitlePath(
+        entry.title.externalSource,
+        entry.title.mediaType,
+        entry.title.externalId,
+      );
+
+      if (titlePath) {
+        revalidatePath(titlePath);
+      }
+    }
+
+    return {
+      status: "success",
+      message: `Moved ${entries.length} selected title${
+        entries.length === 1 ? "" : "s"
+      } to the system collection.`,
     };
   } catch (writeError) {
     const message =

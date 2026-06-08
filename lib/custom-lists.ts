@@ -20,6 +20,15 @@ type CreateCustomListInput = {
   name: string;
 };
 
+type UpdateCustomListInput = CreateCustomListInput & {
+  listId: string;
+};
+
+type DeleteCustomListInput = {
+  userId: string;
+  listId: string;
+};
+
 type ListCustomListsForUserInput = {
   userId: string;
 };
@@ -111,6 +120,63 @@ export async function createCustomList(input: CreateCustomListInput) {
 
     throw error;
   }
+}
+
+export async function renameCustomList(input: UpdateCustomListInput) {
+  const normalized = normalizeCustomListName(input.name);
+
+  if (!normalized.ok) {
+    throw new Error(normalized.message);
+  }
+
+  const existingList = await prisma.customList.findFirst({
+    where: {
+      userId: input.userId,
+      normalizedName: normalized.normalizedName,
+      NOT: {
+        id: input.listId,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (existingList) {
+    throw new Error("A custom list with this name already exists.");
+  }
+
+  try {
+    return await prisma.customList.update({
+      where: {
+        userId_id: {
+          userId: input.userId,
+          id: input.listId,
+        },
+      },
+      data: {
+        name: normalized.name,
+        normalizedName: normalized.normalizedName,
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new Error("A custom list with this name already exists.");
+    }
+
+    throw error;
+  }
+}
+
+export async function deleteCustomList(input: DeleteCustomListInput) {
+  return prisma.customList.delete({
+    where: {
+      userId_id: {
+        userId: input.userId,
+        id: input.listId,
+      },
+    },
+  });
 }
 
 export async function listCustomListsForUser(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   initialCreateCustomListState,
@@ -10,6 +10,7 @@ import {
   createCustomListForTitle,
   updateTitleEntryCustomLists,
 } from "@/app/title/actions";
+import { useI18n } from "@/components/language-preference";
 
 type CustomListOption = {
   id: string;
@@ -97,6 +98,9 @@ export function CustomListAssignmentForm({
   customLists,
   selectedListIds,
 }: CustomListAssignmentFormProps) {
+  const dictionary = useI18n();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const selectedListIdSet = new Set(selectedListIds);
   const [createState, createFormAction] = useActionState(
     createCustomListForTitle,
@@ -107,86 +111,135 @@ export function CustomListAssignmentForm({
     initialUpdateTitleEntryCustomListsState,
   );
 
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
   return (
-    <details className="relative shrink-0">
-      <summary className="flex min-h-10 w-10 cursor-pointer list-none items-center justify-center rounded-md border border-zinc-300 bg-white text-sm font-semibold text-zinc-700 hover:bg-zinc-100">
-        <span aria-hidden="true">…</span>
-        <span className="sr-only">Open custom list menu</span>
-      </summary>
-      <div className="absolute right-0 z-20 mt-2 grid w-80 gap-3 rounded-md border border-zinc-200 bg-white p-3 text-sm shadow-lg">
-        <div>
-          <h3 className="font-semibold text-zinc-950">Custom lists</h3>
-          <p className="mt-1 text-xs leading-5 text-zinc-500">
-            User-created lists only. Status collections stay virtual.
-          </p>
-        </div>
-
-        <form action={assignmentFormAction} className="grid gap-3">
-          <HiddenTitleFields
-            entryId={entryId}
-            source={source}
-            externalId={externalId}
-            mediaType={mediaType}
-          />
-
-          {customLists.length === 0 ? (
-            <p className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
-              No custom lists yet.
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        className="flex min-h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-zinc-300 bg-white text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label={dictionary.titlePage.openCustomListMenu}
+      >
+        <span aria-hidden="true">...</span>
+      </button>
+      {isOpen ? (
+        <div
+          className="absolute right-0 z-20 mt-2 grid w-80 gap-3 rounded-md border border-zinc-200 bg-white p-3 text-sm shadow-lg"
+          role="menu"
+          aria-label={dictionary.titlePage.customListMenu}
+        >
+          <div>
+            <h3 className="font-semibold text-zinc-950">
+              {dictionary.titlePage.customLists}
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-zinc-500">
+              {dictionary.titlePage.customListsDescription}
             </p>
-          ) : (
-            <fieldset className="grid max-h-48 gap-2 overflow-auto pr-1">
-              <legend className="text-sm font-medium text-zinc-700">
-                Assign this title
-              </legend>
-              {customLists.map((customList) => (
-                <label
-                  key={customList.id}
-                  className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700"
-                >
-                  <input
-                    type="checkbox"
-                    name="listId"
-                    value={customList.id}
-                    defaultChecked={selectedListIdSet.has(customList.id)}
-                    className="h-4 w-4 rounded border-zinc-300"
-                  />
-                  <span>{customList.name}</span>
-                </label>
-              ))}
-            </fieldset>
-          )}
+          </div>
 
-          <SubmitButton idleLabel="Save lists" pendingLabel="Saving..." />
-          <ActionMessage
-            status={assignmentState.status}
-            message={assignmentState.message}
-          />
-        </form>
-
-        <form action={createFormAction} className="grid gap-2 border-t border-zinc-100 pt-3">
-          <HiddenTitleFields
-            entryId={entryId}
-            source={source}
-            externalId={externalId}
-            mediaType={mediaType}
-          />
-          <label className="grid gap-1 text-sm font-medium text-zinc-700">
-            New custom list
-            <input
-              type="text"
-              name="name"
-              maxLength={60}
-              placeholder="Favorites"
-              className="min-h-9 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+          <form action={assignmentFormAction} className="grid gap-3">
+            <HiddenTitleFields
+              entryId={entryId}
+              source={source}
+              externalId={externalId}
+              mediaType={mediaType}
             />
-          </label>
-          <SubmitButton idleLabel="Create and add" pendingLabel="Creating..." />
-          <ActionMessage
-            status={createState.status}
-            message={createState.message}
-          />
-        </form>
-      </div>
-    </details>
+
+            {customLists.length === 0 ? (
+              <p className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+                {dictionary.library.noCustomLists}
+              </p>
+            ) : (
+              <fieldset className="grid max-h-48 gap-2 overflow-auto pr-1">
+                <legend className="text-sm font-medium text-zinc-700">
+                  {dictionary.titlePage.assignThisTitle}
+                </legend>
+                {customLists.map((customList) => (
+                  <label
+                    key={customList.id}
+                    className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700"
+                  >
+                    <input
+                      type="checkbox"
+                      name="listId"
+                      value={customList.id}
+                      defaultChecked={selectedListIdSet.has(customList.id)}
+                      className="h-4 w-4 rounded border-zinc-300"
+                    />
+                    <span>{customList.name}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
+            <SubmitButton
+              idleLabel={dictionary.titlePage.saveLists}
+              pendingLabel={dictionary.common.saving}
+            />
+            <ActionMessage
+              status={assignmentState.status}
+              message={assignmentState.message}
+            />
+          </form>
+
+          <form
+            action={createFormAction}
+            className="grid gap-2 border-t border-zinc-100 pt-3"
+          >
+            <HiddenTitleFields
+              entryId={entryId}
+              source={source}
+              externalId={externalId}
+              mediaType={mediaType}
+            />
+            <label className="grid gap-1 text-sm font-medium text-zinc-700">
+              {dictionary.titlePage.newCustomList}
+              <input
+                type="text"
+                name="name"
+                maxLength={60}
+                placeholder={dictionary.titlePage.customListPlaceholder}
+                className="min-h-9 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+              />
+            </label>
+            <SubmitButton
+              idleLabel={dictionary.titlePage.createAndAdd}
+              pendingLabel={dictionary.common.creating}
+            />
+            <ActionMessage
+              status={createState.status}
+              message={createState.message}
+            />
+          </form>
+        </div>
+      ) : null}
+    </div>
   );
 }

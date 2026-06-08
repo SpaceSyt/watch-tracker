@@ -4,14 +4,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { EntryStatus } from "@/app/generated/prisma/enums";
-import { initialBatchCustomListActionState } from "@/app/title/action-state";
+import {
+  initialBatchCustomListActionState,
+  initialCustomListActionState,
+} from "@/app/title/action-state";
 import {
   copySelectedTitlesToCustomList,
   deleteSelectedTitlesFromList,
   moveSelectedTitlesToCustomList,
+  moveSelectedTitlesToStatus,
   removeSelectedTitlesFromCustomList,
   removeTitleFromList,
   removeTitleFromCustomList,
+  renameCustomListFromMy,
   updateTitleEntryCustomListsFromMy,
 } from "@/app/title/actions";
 import { EmptyCollection } from "@/components/empty-collection";
@@ -24,9 +29,17 @@ type MyCollectionContentProps = {
   selectedTitle: string;
   entries: CollectionEntry[];
   customLists: CustomListOption[];
+  systemStatusOptions: SystemStatusOption[];
   currentCustomListId: string | null;
+  currentCustomListName: string | null;
+  currentSystemStatus: EntryStatus | null;
   emptyTitle: string;
   emptyDescription: string;
+};
+
+type SystemStatusOption = {
+  status: EntryStatus;
+  label: string;
 };
 
 function getYear(releaseDate: string | null, unknownYear: string) {
@@ -49,6 +62,14 @@ function canShowRatingReview(status: EntryStatus) {
   return status === EntryStatus.WATCHING || status === EntryStatus.COMPLETED;
 }
 
+const neutralButton =
+  "rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900";
+const dangerButton =
+  "rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 dark:border-red-500/70 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/70";
+const disabledButton =
+  "cursor-not-allowed rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm font-medium text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500";
+const toolbarButton = neutralButton;
+
 function SelectedEntryIdInputs({ entryIds }: { entryIds: string[] }) {
   return (
     <>
@@ -56,6 +77,93 @@ function SelectedEntryIdInputs({ entryIds }: { entryIds: string[] }) {
         <input key={entryId} type="hidden" name="entryId" value={entryId} />
       ))}
     </>
+  );
+}
+
+function EditableCollectionTitle({
+  title,
+  listId,
+}: {
+  title: string;
+  listId: string | null;
+}) {
+  const dictionary = useI18n();
+  const formRef = useRef<HTMLFormElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [state, formAction] = useActionState(
+    renameCustomListFromMy,
+    initialCustomListActionState,
+  );
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  if (!listId) {
+    return <h2 className="text-xl font-semibold text-zinc-950">{title}</h2>;
+  }
+
+  function submitRename() {
+    const input = inputRef.current;
+
+    if (!input || input.value.trim() === title.trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+    formRef.current?.requestSubmit();
+  }
+
+  return (
+    <div className="space-y-1">
+      {isEditing ? (
+        <form
+          ref={formRef}
+          action={formAction}
+          onSubmit={() => setIsEditing(false)}
+          className="max-w-md"
+        >
+          <input type="hidden" name="listId" value={listId} />
+          <input
+            ref={inputRef}
+            type="text"
+            name="name"
+            defaultValue={title}
+            maxLength={60}
+            onBlur={submitRename}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setIsEditing(false);
+              }
+            }}
+            className="min-h-10 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-xl font-semibold text-zinc-950"
+            aria-label={dictionary.library.renameList}
+          />
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsEditing(true)}
+          className="max-w-full text-left text-xl font-semibold text-zinc-950 hover:underline"
+          title={dictionary.library.clickTitleToRename}
+        >
+          {title}
+        </button>
+      )}
+      {state.message ? (
+        <p
+          className={`text-xs ${
+            state.status === "error" ? "text-red-700" : "text-zinc-500"
+          }`}
+        >
+          {state.message}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -172,6 +280,108 @@ function BatchListModal({
   );
 }
 
+type BatchStatusModalProps = {
+  title: string;
+  description: string;
+  action: (formData: FormData) => void;
+  entryIds: string[];
+  statuses: SystemStatusOption[];
+  onClose: () => void;
+};
+
+function BatchStatusModal({
+  title,
+  description,
+  action,
+  entryIds,
+  statuses,
+  onClose,
+}: BatchStatusModalProps) {
+  const dictionary = useI18n();
+  const [targetStatus, setTargetStatus] = useState("");
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  const canSubmit = entryIds.length > 0 && targetStatus !== "";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 px-4 py-6"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <form
+        action={action}
+        onSubmit={onClose}
+        className="w-full max-w-md rounded-xl border border-zinc-200 bg-white shadow-xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="border-b border-zinc-100 px-5 py-4">
+          <h3 className="text-base font-semibold text-zinc-950">{title}</h3>
+          <p className="mt-1 text-sm text-zinc-500">{description}</p>
+        </div>
+        <div className="grid gap-2 px-5 py-4">
+          <SelectedEntryIdInputs entryIds={entryIds} />
+          {statuses.map((statusOption) => (
+            <label
+              key={statusOption.status}
+              className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                targetStatus === statusOption.status
+                  ? "border-zinc-900 bg-zinc-50 text-zinc-950"
+                  : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="targetStatus"
+                value={statusOption.status}
+                checked={targetStatus === statusOption.status}
+                onChange={() => setTargetStatus(statusOption.status)}
+                className="h-4 w-4 border-zinc-300"
+              />
+              <span>{statusOption.label}</span>
+            </label>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-zinc-100 px-5 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          >
+            {dictionary.common.cancel}
+          </button>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className={canSubmit ? neutralButton : disabledButton}
+          >
+            {dictionary.common.confirm}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function CardActionMenu({
   entry,
   titleHref,
@@ -237,7 +447,7 @@ function CardActionMenu({
       </button>
       {isOpen ? (
         <div
-          className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg"
+          className="absolute right-0 z-20 mt-2 w-max min-w-44 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg"
           role="menu"
           aria-label={dictionary.collectionContent.actionsFor(entry.titleName)}
         >
@@ -245,7 +455,7 @@ function CardActionMenu({
             {dictionary.collectionContent.actions}
           </p>
           <details className="border-t border-zinc-100">
-            <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+            <summary className="cursor-pointer list-none whitespace-nowrap px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
               {dictionary.collectionContent.changeLists}
             </summary>
             <form
@@ -310,7 +520,7 @@ function CardActionMenu({
             </form>
           </details>
           <details className="border-t border-zinc-100">
-            <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
+            <summary className="cursor-pointer list-none whitespace-nowrap px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">
               {removeLabel}
             </summary>
             <form
@@ -346,7 +556,10 @@ export function MyCollectionContent({
   selectedTitle,
   entries,
   customLists,
+  systemStatusOptions,
   currentCustomListId,
+  currentCustomListName,
+  currentSystemStatus,
   emptyTitle,
   emptyDescription,
 }: MyCollectionContentProps) {
@@ -360,11 +573,15 @@ export function MyCollectionContent({
     moveSelectedTitlesToCustomList,
     initialBatchCustomListActionState,
   );
+  const [statusMoveState, statusMoveFormAction] = useActionState(
+    moveSelectedTitlesToStatus,
+    initialBatchCustomListActionState,
+  );
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([]);
-  const [activeBatchModal, setActiveBatchModal] = useState<"copy" | "move" | null>(
-    null,
-  );
+  const [activeBatchModal, setActiveBatchModal] = useState<
+    "copy" | "move-list" | "move-status" | null
+  >(null);
   const selectedEntryIdSet = useMemo(
     () => new Set(selectedEntryIds),
     [selectedEntryIds],
@@ -373,6 +590,11 @@ export function MyCollectionContent({
     entries.length > 0 && selectedEntryIds.length === entries.length;
   const moveTargetLists = currentCustomListId
     ? customLists.filter((customList) => customList.id !== currentCustomListId)
+    : [];
+  const moveTargetStatuses = currentSystemStatus
+    ? systemStatusOptions.filter(
+        (statusOption) => statusOption.status !== currentSystemStatus,
+      )
     : [];
   const batchRemoveAction = currentCustomListId
     ? removeSelectedTitlesFromCustomList
@@ -405,17 +627,29 @@ export function MyCollectionContent({
     setIsBatchMode(false);
   }
 
+  const hasSelection = selectedEntryIds.length > 0;
+  const canCopy = hasSelection && customLists.length > 0;
+  const canRemove = hasSelection;
+  const canMove = hasSelection
+    ? currentCustomListId
+      ? moveTargetLists.length > 0
+      : moveTargetStatuses.length > 0
+    : false;
+
   return (
     <section className="space-y-4 min-w-0">
       <div className="border-b border-zinc-200 pb-3">
-        <h2 className="text-xl font-semibold text-zinc-950">{selectedTitle}</h2>
+        <EditableCollectionTitle
+          title={currentCustomListName ?? selectedTitle}
+          listId={currentCustomListId}
+        />
         <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3">
           {isBatchMode ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={toggleSelectAll}
-                className="w-fit rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                className={`w-fit ${toolbarButton}`}
               >
                 {allEntriesSelected
                   ? dictionary.collectionContent.deselectAll
@@ -441,8 +675,8 @@ export function MyCollectionContent({
                   ) : null}
                   <button
                     type="submit"
-                    disabled={selectedEntryIds.length === 0}
-                    className="rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
+                    disabled={!canRemove}
+                    className={canRemove ? dangerButton : disabledButton}
                   >
                     {batchRemoveLabel}
                   </button>
@@ -450,38 +684,34 @@ export function MyCollectionContent({
                 <button
                   type="button"
                   onClick={() => setActiveBatchModal("copy")}
-                  disabled={
-                    selectedEntryIds.length === 0 || customLists.length === 0
-                  }
-                  className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
+                  disabled={!canCopy}
+                  className={canCopy ? neutralButton : disabledButton}
                 >
                   {dictionary.collectionContent.copyToList}
                 </button>
                 {currentCustomListId ? (
                   <button
                     type="button"
-                    onClick={() => setActiveBatchModal("move")}
-                    disabled={
-                      selectedEntryIds.length === 0 || moveTargetLists.length === 0
-                    }
-                    className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:bg-zinc-50 disabled:text-zinc-400"
+                    onClick={() => setActiveBatchModal("move-list")}
+                    disabled={!canMove}
+                    className={canMove ? neutralButton : disabledButton}
                   >
                     {dictionary.collectionContent.moveToList}
                   </button>
                 ) : (
                   <button
                     type="button"
-                    disabled
-                    title={dictionary.collectionContent.moveAvailableInCustomList}
-                    className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm font-medium text-zinc-400"
+                    onClick={() => setActiveBatchModal("move-status")}
+                    disabled={!canMove}
+                    className={canMove ? neutralButton : disabledButton}
                   >
-                    {dictionary.collectionContent.moveAvailableInCustomList}
+                    {dictionary.collectionContent.moveToStatus}
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={exitBatchMode}
-                  className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                  className={toolbarButton}
                 >
                   {dictionary.common.done}
                 </button>
@@ -513,7 +743,8 @@ export function MyCollectionContent({
         </div>
       </div>
 
-      {isBatchMode && (copyState.message || moveState.message) ? (
+      {isBatchMode &&
+      (copyState.message || moveState.message || statusMoveState.message) ? (
         <div className="space-y-1">
           {copyState.message ? (
             <p
@@ -533,6 +764,17 @@ export function MyCollectionContent({
               {moveState.message}
             </p>
           ) : null}
+          {statusMoveState.message ? (
+            <p
+              className={`text-sm ${
+                statusMoveState.status === "error"
+                  ? "text-red-700"
+                  : "text-zinc-600"
+              }`}
+            >
+              {statusMoveState.message}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -544,14 +786,16 @@ export function MyCollectionContent({
             const titleHref = `/title/${entry.titleExternalSource}/${getMediaTypePath(entry.titleMediaType)}/${entry.titleExternalId}`;
             const isSelected = selectedEntryIdSet.has(entry.id);
             const showRatingReview = canShowRatingReview(entry.status);
+            const cardClassName = [
+              "relative grid grid-cols-[72px_1fr] gap-3 rounded-lg border bg-white p-3",
+              "dark:bg-zinc-900",
+              isSelected
+                ? "border-zinc-500 dark:border-zinc-400"
+                : "border-zinc-200 dark:border-zinc-700",
+            ].join(" ");
 
             return (
-              <article
-                key={entry.id}
-                className={`relative grid grid-cols-[72px_1fr] gap-3 rounded-lg border bg-white p-3 ${
-                  isSelected ? "border-zinc-900" : "border-zinc-200"
-                }`}
-              >
+              <article key={entry.id} className={cardClassName}>
                 {isBatchMode ? (
                   <label className="absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border border-zinc-300 bg-white shadow-sm">
                     <input
@@ -668,7 +912,7 @@ export function MyCollectionContent({
           onClose={() => setActiveBatchModal(null)}
         />
       ) : null}
-      {activeBatchModal === "move" && currentCustomListId ? (
+      {activeBatchModal === "move-list" && currentCustomListId ? (
         <BatchListModal
           title={dictionary.collectionContent.moveModalTitle}
           description={dictionary.collectionContent.moveModalDescription}
@@ -676,6 +920,16 @@ export function MyCollectionContent({
           entryIds={selectedEntryIds}
           lists={moveTargetLists}
           sourceListId={currentCustomListId}
+          onClose={() => setActiveBatchModal(null)}
+        />
+      ) : null}
+      {activeBatchModal === "move-status" && currentSystemStatus ? (
+        <BatchStatusModal
+          title={dictionary.collectionContent.moveStatusModalTitle}
+          description={dictionary.collectionContent.moveStatusModalDescription}
+          action={statusMoveFormAction}
+          entryIds={selectedEntryIds}
+          statuses={moveTargetStatuses}
           onClose={() => setActiveBatchModal(null)}
         />
       ) : null}

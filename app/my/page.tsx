@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { EntryStatus } from "@/app/generated/prisma/enums";
 import { CustomListCreateForm } from "@/components/custom-list-create-form";
+import { CustomListNavItem } from "@/components/custom-list-nav-item";
 import { MyCollectionContent } from "@/components/my-collection-content";
 import { PageShell } from "@/components/page-shell";
 import { getServerDictionary } from "@/lib/i18n-server";
@@ -295,37 +296,13 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
                     const selected = selectedCustomList?.id === customList.id;
 
                     return (
-                      <Link
+                      <CustomListNavItem
                         key={customList.id}
-                        href={`/my?list=${encodeURIComponent(customList.id)}`}
-                        className={`${collectionLinkClass(selected)} group`}
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <span
-                            aria-hidden="true"
-                            className={`opacity-0 transition-opacity group-hover:opacity-100 ${
-                              selected ? "text-zinc-500" : "text-zinc-400"
-                            }`}
-                          >
-                            ≡
-                          </span>
-                          <span className="truncate">{customList.name}</span>
-                        </span>
-                        <span className="flex shrink-0 items-center gap-1">
-                          <span className={countBadgeClass(selected)}>
-                            {customList._count.entries}
-                          </span>
-                          <span
-                            aria-hidden="true"
-                            title={dictionary.library.moreActionsComingSoon}
-                            className={`opacity-0 transition-opacity group-hover:opacity-100 ${
-                              selected ? "text-zinc-500" : "text-zinc-400"
-                            }`}
-                          >
-                            …
-                          </span>
-                        </span>
-                      </Link>
+                        id={customList.id}
+                        name={customList.name}
+                        count={customList._count.entries}
+                        selected={selected}
+                      />
                     );
                   })}
                 </nav>
@@ -353,7 +330,13 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
               id: customList.id,
               name: customList.name,
             }))}
+            systemStatusOptions={systemCollections.map((collection) => ({
+              status: collection.status,
+              label: collection.label,
+            }))}
             currentCustomListId={selectedCustomList?.id ?? null}
+            currentCustomListName={selectedCustomList?.name ?? null}
+            currentSystemStatus={selectedCustomList ? null : selectedSystemStatus}
             emptyTitle={
               totalEntryCount === 0
                 ? dictionary.library.emptyAllTitle

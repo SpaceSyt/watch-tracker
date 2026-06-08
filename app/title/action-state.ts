@@ -60,3 +60,13 @@ export const initialBatchCustomListActionState: BatchCustomListActionState = {
   status: "idle",
   message: null,
 };
+
+export type CustomListActionState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
+export const initialCustomListActionState: CustomListActionState = {
+  status: "idle",
+  message: null,
+};

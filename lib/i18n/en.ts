@@ -128,6 +128,13 @@ export const enDictionary = {
       emptyCollectionDescription:
         "Add or assign saved titles from their title detail pages.",
       moreActionsComingSoon: "More list actions coming soon",
+      openListActions: (list: string) => `Open actions for ${list}`,
+      listActionsFor: (list: string) => `Actions for ${list}`,
+      renameList: "Rename list",
+      removeList: "Remove list",
+      confirmRemoveList:
+        "Remove this custom list? Titles stay in your main list.",
+      clickTitleToRename: "Click to rename this list",
       newList: "+ New list",
       listName: "List name",
     },
@@ -152,6 +159,9 @@ export const enDictionary = {
       moveModalTitle: "Move selected titles to",
       moveModalDescription:
         "Choose a destination list. Titles are removed from the current custom list only.",
+      moveStatusModalTitle: "Move selected titles to",
+      moveStatusModalDescription:
+        "Choose a system collection. Custom-list memberships are kept.",
       createAnotherList:
         "Create another custom list before using this batch action.",
       actions: "Actions",
@@ -174,6 +184,7 @@ export const enDictionary = {
       deleteSelected: "Delete selected",
       copyToList: "Copy to list",
       moveToList: "Move to list",
+      moveToStatus: "Move to status",
       moveAvailableInCustomList: "Move is available inside a custom list",
       searchThisCollectionSoon: "Search this collection soon",
       sortRecentlyUpdated: "Sort: Recently updated",
@@ -196,6 +207,16 @@ export const enDictionary = {
       totalEpisodes: "Total episodes",
       addToYourList: "Add to your list",
       saveBeforeCustomLists: "Save this title before adding it to custom lists.",
+      openCustomListMenu: "Open custom list menu",
+      customListMenu: "Custom list menu",
+      customLists: "Custom lists",
+      customListsDescription:
+        "User-created lists only. Status collections stay virtual.",
+      assignThisTitle: "Assign this title",
+      saveLists: "Save lists",
+      newCustomList: "New custom list",
+      customListPlaceholder: "Favorites",
+      createAndAdd: "Create and add",
       feedbackAvailable:
         "Ratings, reviews, and episode progress are available after moving this title to Watching or Completed.",
     },
