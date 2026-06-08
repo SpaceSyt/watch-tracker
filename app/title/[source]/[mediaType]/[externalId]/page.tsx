@@ -162,6 +162,7 @@ export default async function TitlePage({ params }: TitlePageProps) {
               width={220}
               height={330}
               sizes="220px"
+              priority
               className="h-full w-full object-cover"
             />
           ) : (
