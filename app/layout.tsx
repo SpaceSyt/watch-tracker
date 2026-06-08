@@ -50,9 +50,9 @@ export default function RootLayout({
         className="min-h-full bg-zinc-50 text-zinc-900"
       >
         <script dangerouslySetInnerHTML={{ __html: themePreferenceScript }} />
-        <div className="flex h-screen flex-col">
+        <div className="flex min-h-screen flex-col">
           <SiteHeader />
-          <main className="flex flex-1 flex-col overflow-hidden px-6 py-6 sm:px-8">
+          <main className="mx-auto flex w-full max-w-[88rem] flex-1 flex-col px-6 py-10 sm:px-8">
             {children}
           </main>
         </div>

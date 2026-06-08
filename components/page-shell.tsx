@@ -14,9 +14,9 @@ export function PageShell({
   wide = false,
 }: PageShellProps) {
   return (
-    <section className="flex h-full flex-1 flex-col">
+    <section className="flex flex-1 items-start">
       <div
-        className={`flex h-full w-full flex-col rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm sm:p-10 ${
+        className={`w-full rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm sm:p-10 ${
           wide ? "" : "mx-auto max-w-6xl"
         }`}
       >
@@ -29,7 +29,7 @@ export function PageShell({
         <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-600">
           {description}
         </p>
-        {children ? <div className="mt-8 flex h-full flex-col overflow-hidden">{children}</div> : null}
+        {children ? <div className="mt-8">{children}</div> : null}
       </div>
     </section>
   );
