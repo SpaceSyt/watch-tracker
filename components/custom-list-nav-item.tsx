@@ -86,43 +86,51 @@ export function CustomListNavItem({
     }
   }, [isRenaming]);
 
+  function handleMenuToggle(event: React.MouseEvent | React.KeyboardEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsOpen((current) => !current);
+    setIsRenaming(false);
+    setIsConfirmingDelete(false);
+  }
+
   return (
     <div ref={menuRef} className="group relative min-w-0">
       <Link
         href={`/my?list=${encodeURIComponent(id)}`}
-        className={`${collectionLinkClass(selected)} pr-12`}
+        className={collectionLinkClass(selected)}
       >
         <span className="min-w-0 truncate">{name}</span>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={handleMenuToggle}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              handleMenuToggle(event);
+            }
+          }}
+          className="relative shrink-0 cursor-pointer"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-label={dictionary.library.openListActions(name)}
+        >
+          <span
+            className={`${countBadgeClass(selected)} transition-opacity ${
+              isOpen ? "opacity-0" : "group-hover:opacity-0"
+            }`}
+          >
+            {count}
+          </span>
+          <span
+            className={`absolute inset-0 flex items-center justify-center text-xs text-zinc-500 transition-opacity ${
+              isOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            ...
+          </span>
+        </span>
       </Link>
-      <span className="pointer-events-none absolute right-3 top-1/2 flex h-6 w-8 -translate-y-1/2 items-center justify-center">
-        <span
-          className={`${countBadgeClass(selected)} absolute transition-opacity group-hover:opacity-0 ${
-            isOpen ? "opacity-0" : ""
-          }`}
-        >
-          {count}
-        </span>
-        <span
-          aria-hidden="true"
-          className={`absolute rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 transition-opacity dark:bg-zinc-800 dark:text-zinc-300 ${
-            isOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
-        >
-          ...
-        </span>
-      </span>
-      <button
-        type="button"
-        onClick={() => {
-          setIsOpen((current) => !current);
-          setIsRenaming(false);
-          setIsConfirmingDelete(false);
-        }}
-        className="absolute right-3 top-1/2 h-6 w-8 -translate-y-1/2 cursor-pointer opacity-0"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-label={dictionary.library.openListActions(name)}
-      />
       {isOpen ? (
         <div
           className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-md border border-zinc-200 bg-white text-sm shadow-lg"
