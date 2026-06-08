@@ -114,9 +114,12 @@ function unflattenDictionary(flat: FlatDictionary): DictionaryNode {
 
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
-      if (!current[key]) {
+      const child = current[key];
+
+      if (typeof child !== 'object' || child === null) {
         current[key] = {};
       }
+
       current = current[key] as DictionaryNode;
     }
 

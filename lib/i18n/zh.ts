@@ -193,7 +193,7 @@ export const zhDictionary = {
       unable: "无法加载此标题。",
       originalTitle: "原标题",
       externalSource: "外部来源",
-      releaseDate: "发行日期",
+      releaseDate: "上映日期",
       totalEpisodes: "总集数",
       addToYourList: "加入你的片单",
       saveBeforeCustomLists: "请先保存此标题，再加入自定义列表。",
