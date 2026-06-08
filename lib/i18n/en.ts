@@ -188,7 +188,7 @@ export const enDictionary = {
       moveAvailableInCustomList: "Move is available inside a custom list",
       searchThisCollectionSoon: "Search this collection soon",
       sortRecentlyUpdated: "Sort: Recently updated",
-      batchActions: "Batch actions",
+      batchActions: "Batch",
       openActionsFor: (title: string) => `Open actions for ${title}`,
       actionsFor: (title: string) => `Actions for ${title}`,
       selectTitle: (title: string) => `Select ${title}`,

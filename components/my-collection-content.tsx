@@ -638,29 +638,51 @@ export function MyCollectionContent({
 
   return (
     <section className="space-y-4 min-w-0">
-      <div className="border-b border-zinc-200 pb-3">
-        <EditableCollectionTitle
-          title={currentCustomListName ?? selectedTitle}
-          listId={currentCustomListId}
-        />
-        <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3">
+      <div>
+        <div className="flex items-center justify-between gap-4">
+          <EditableCollectionTitle
+            title={currentCustomListName ?? selectedTitle}
+            listId={currentCustomListId}
+          />
           {isBatchMode ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={toggleSelectAll}
-                className={`w-fit ${toolbarButton}`}
-              >
-                {allEntriesSelected
-                  ? dictionary.collectionContent.deselectAll
-                  : dictionary.collectionContent.selectAll}
-              </button>
-              <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={exitBatchMode}
+              className="w-[5.5rem] shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            >
+              {dictionary.common.done}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={enterBatchMode}
+              className="w-[5.5rem] shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+            >
+              {dictionary.collectionContent.batchActions}
+            </button>
+          )}
+        </div>
+        <div className="mt-3 border-b border-zinc-200 dark:border-zinc-700" />
+        <div className="mt-3 flex items-center justify-between gap-4">
+          {isBatchMode ? (
+            <>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className={toolbarButton}
+                >
+                  {allEntriesSelected
+                    ? dictionary.collectionContent.deselectAll
+                    : dictionary.collectionContent.selectAll}
+                </button>
                 <span className="text-sm text-zinc-500">
                   {dictionary.collectionContent.selectedCount(
                     selectedEntryIds.length,
                   )}
                 </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
                 <form
                   action={batchRemoveAction}
                   className="flex items-center"
@@ -708,37 +730,21 @@ export function MyCollectionContent({
                     {dictionary.collectionContent.moveToStatus}
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={exitBatchMode}
-                  className={toolbarButton}
-                >
-                  {dictionary.common.done}
-                </button>
               </div>
-            </div>
+            </>
           ) : (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-1 flex-wrap items-center gap-2">
-                <div className="min-w-0 flex-1 rounded-md border border-dashed border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-400 sm:max-w-xs">
-                  {dictionary.collectionContent.searchThisCollectionSoon}
-                </div>
-                <button
-                  type="button"
-                  disabled
-                  className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-400"
-                >
-                  {dictionary.collectionContent.sortRecentlyUpdated}
-                </button>
-              </div>
+            <>
               <button
                 type="button"
-                onClick={enterBatchMode}
-                className="w-fit rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+                disabled
+                className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800"
               >
-                {dictionary.collectionContent.batchActions}
+                {dictionary.collectionContent.sortRecentlyUpdated}
               </button>
-            </div>
+              <div className="min-w-0 max-w-xs rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-400 dark:border-zinc-700 dark:bg-zinc-800">
+                {dictionary.collectionContent.searchThisCollectionSoon}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -781,7 +787,8 @@ export function MyCollectionContent({
       {entries.length === 0 ? (
         <EmptyCollection title={emptyTitle} description={emptyDescription} />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 min-[1380px]:grid-cols-4">
+        <div className="mt-4 flex-1 overflow-y-auto">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {entries.map((entry) => {
             const titleHref = `/title/${entry.titleExternalSource}/${getMediaTypePath(entry.titleMediaType)}/${entry.titleExternalId}`;
             const isSelected = selectedEntryIdSet.has(entry.id);
@@ -900,6 +907,7 @@ export function MyCollectionContent({
               </article>
             );
           })}
+          </div>
         </div>
       )}
       {activeBatchModal === "copy" ? (

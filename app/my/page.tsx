@@ -231,7 +231,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
       description={dictionary.library.description}
       wide
     >
-      <div className="grid gap-5">
+      <div className="flex h-full flex-col gap-5">
         <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -251,7 +251,7 @@ export default async function MyListPage({ searchParams }: MyListPageProps) {
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <div className="grid flex-1 gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="space-y-5 rounded-lg border border-zinc-200 bg-zinc-50 p-4">
             <section className="space-y-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
