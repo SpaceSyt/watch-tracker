@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { saveTranslations, type TranslationRow } from "@/app/i18n-editor/actions";
 
 type I18nEditorProps = {
@@ -20,8 +20,8 @@ async function saveAction(_prevState: SaveState, formData: FormData): Promise<Sa
 
   try {
     const rows = JSON.parse(data) as TranslationRow[];
-    await saveTranslations(rows);
-    return { status: "success", message: "Saved successfully!" };
+    const result = await saveTranslations(rows);
+    return { status: "success", message: result.message };
   } catch (error) {
     return {
       status: "error",
@@ -38,15 +38,6 @@ export function I18nEditor({ initialRows }: I18nEditorProps) {
     status: "idle",
     message: null,
   });
-
-  useEffect(() => {
-    if (saveState.status === "success") {
-      const timer = setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [saveState.status]);
 
   const filteredRows = rows.filter((row) => {
     const matchesText =

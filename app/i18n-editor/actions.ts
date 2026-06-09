@@ -92,7 +92,7 @@ function escapeCSV(value: string): string {
   return escaped;
 }
 
-export async function saveTranslations(rows: TranslationRow[]): Promise<void> {
+export async function saveTranslations(rows: TranslationRow[]): Promise<{ success: boolean; message: string }> {
   const lines = ["key,en,zh,status"];
 
   for (const row of rows) {
@@ -102,10 +102,8 @@ export async function saveTranslations(rows: TranslationRow[]): Promise<void> {
 
   fs.writeFileSync(CSV_PATH, lines.join("\n"), "utf-8");
 
-  // Also update the TS files
-  const { execSync } = await import("child_process");
-  execSync("npx tsx scripts/i18n-table-editor.ts import", {
-    cwd: process.cwd(),
-    stdio: "inherit",
-  });
+  return {
+    success: true,
+    message: "CSV saved. Run 'npx tsx scripts/i18n-table-editor.ts import' to update TS files.",
+  };
 }
